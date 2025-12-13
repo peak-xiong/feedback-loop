@@ -114,6 +114,8 @@ Windsurf 启动时会：
 3. **重启 Windsurf**（非常重要！）
 4. 完成！
 
+> 💡 **更新时**：再次运行 `install.bat` 即可自动更新全局规则文件（旧文件会备份为 `.windsurfrules.backup`）
+
 ### 方式二：手动安装
 
 #### 步骤 1：安装 Python 依赖

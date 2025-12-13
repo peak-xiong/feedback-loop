@@ -64,32 +64,38 @@ echo [OK] MCP 配置已写入: %WINDSURF_MCP_FILE%
 
 :: 安装 VS Code 扩展
 echo.
-echo [4/5] 安装 VS Code 扩展...
-set "VSIX_FILE=%~dp0ask-continue-1.0.0.vsix"
+echo [4/5] 安装 Windsurf 扩展...
+set "VSIX_FILE=%~dp0windsurf-ask-continue-1.1.0.vsix"
 
-echo [提示] 请手动安装扩展:
-echo        1. 按 Ctrl+Shift+P
-echo        2. 输入 Extensions: Install from VSIX
-echo        3. 选择 VSIX 文件
-echo.
-echo 正在打开文件位置...
-explorer /select,"%VSIX_FILE%"
+if not exist "%VSIX_FILE%" (
+    echo [警告] VSIX 文件不存在: %VSIX_FILE%
+    echo        请确认文件名是否正确
+) else (
+    echo [提示] 请手动安装扩展:
+    echo        1. 按 Ctrl+Shift+P
+    echo        2. 输入 Extensions: Install from VSIX
+    echo        3. 选择 VSIX 文件
+    echo.
+    echo 正在打开文件位置...
+    explorer /select,"%VSIX_FILE%"
+)
 
-:: 复制规则文件到用户全局目录
+:: 复制规则文件到用户全局目录（总是更新）
 echo.
 echo [5/5] 配置全局规则文件...
 set "RULES_SRC=%~dp0rules\example-windsurfrules.txt"
 set "RULES_DST=%USERPROFILE%\.windsurfrules"
 
-if exist "%RULES_DST%" (
-    echo [跳过] 全局 .windsurfrules 已存在: %RULES_DST%
+if not exist "%RULES_SRC%" (
+    echo [警告] 规则模板文件不存在: %RULES_SRC%
 ) else (
-    if exist "%RULES_SRC%" (
-        copy "%RULES_SRC%" "%RULES_DST%" >nul
-        echo [OK] 全局规则已创建: %RULES_DST%
-    ) else (
-        echo [警告] 规则模板文件不存在: %RULES_SRC%
+    if exist "%RULES_DST%" (
+        :: 备份旧文件
+        copy "%RULES_DST%" "%RULES_DST%.backup" >nul 2>&1
+        echo [备份] 旧规则已备份到: %RULES_DST%.backup
     )
+    copy /Y "%RULES_SRC%" "%RULES_DST%" >nul
+    echo [OK] 全局规则已更新: %RULES_DST%
 )
 
 echo.
