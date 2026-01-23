@@ -23,6 +23,7 @@ def generate_config(name: str) -> dict:
     """根据名称自动生成所有配置"""
     # 分割单词
     words = name.replace("_", "-").split("-")
+    abbr = "".join(w[0].upper() for w in words)
     
     return {
         # dev-helper -> dev_checkpoint
@@ -38,10 +39,13 @@ def generate_config(name: str) -> dict:
         "extension_id": name,
         
         # dev-helper -> DH
-        "status_abbr": "".join(w[0].upper() for w in words),
+        "status_abbr": abbr,
         
         # dev-helper -> [DH]
-        "log_prefix": "[" + "".join(w[0].upper() for w in words) + "]",
+        "log_prefix": f"[{abbr}]",
+        
+        # dev-helper -> dh-ports (临时目录名)
+        "port_dir": f"{abbr.lower()}-ports",
     }
 
 
@@ -87,6 +91,13 @@ def update_server_py(config: dict):
     content = re.sub(
         r'Server\("[^"]+"\)',
         f'Server("{config["mcp_server_name"]}")',
+        content
+    )
+    
+    # 更新端口文件目录名
+    content = re.sub(
+        r'"[a-z]+-ports"',
+        f'"{config["port_dir"]}"',
         content
     )
     
@@ -145,6 +156,13 @@ def update_extension_ts(config: dict):
     content = re.sub(
         r'\[(?:SH|[A-Z]{2,4})\]',
         config["log_prefix"],
+        content
+    )
+    
+    # 更新端口文件目录名
+    content = re.sub(
+        r'"[a-z]+-ports"',
+        f'"{config["port_dir"]}"',
         content
     )
     
