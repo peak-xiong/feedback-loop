@@ -25,7 +25,7 @@ echo [OK] Python 已安装
 :: 安装 Python 依赖
 echo.
 echo [2/5] 安装 MCP Server 依赖...
-cd /d "%~dp0mcp-server-python"
+cd /d "%~dp0server"
 pip install -r requirements.txt -q
 if errorlevel 1 (
     echo [错误] Python 依赖安装失败
@@ -34,10 +34,10 @@ if errorlevel 1 (
 )
 echo [OK] Python 依赖已安装
 
-:: 配置 MCP（使用 Python 脚本安全合并配置，不会覆盖已有的其他 MCP 配置）
+:: 配置 MCP
 echo.
 echo [3/5] 配置 MCP...
-python "%~dp0mcp-server-python\install_mcp_config.py"
+python "%~dp0server\setup.py"
 if errorlevel 1 (
     echo [错误] MCP 配置失败
     pause
@@ -47,7 +47,7 @@ if errorlevel 1 (
 :: 安装 VS Code 扩展
 echo.
 echo [4/5] 安装 Windsurf 扩展...
-set "VSIX_FILE=%~dp0vscode-extension\session-helper-1.2.0.vsix"
+set "VSIX_FILE=%~dp0extension\session-helper-1.2.0.vsix"
 
 if not exist "%VSIX_FILE%" (
     echo [警告] VSIX 文件不存在: %VSIX_FILE%
@@ -62,7 +62,7 @@ if not exist "%VSIX_FILE%" (
     explorer /select,"%VSIX_FILE%"
 )
 
-:: 复制规则文件到用户全局目录（总是更新）
+:: 复制规则文件到用户全局目录
 echo.
 echo [5/5] 配置全局规则文件...
 set "RULES_SRC=%~dp0rules\example-windsurfrules.txt"
@@ -72,7 +72,6 @@ if not exist "%RULES_SRC%" (
     echo [警告] 规则模板文件不存在: %RULES_SRC%
 ) else (
     if exist "%RULES_DST%" (
-        :: 备份旧文件
         copy "%RULES_DST%" "%RULES_DST%.backup" >nul 2>&1
         echo [备份] 旧规则已备份到: %RULES_DST%.backup
     )

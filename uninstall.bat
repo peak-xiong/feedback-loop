@@ -12,10 +12,10 @@ echo [1/2] 卸载 Windsurf 扩展...
 code --uninstall-extension peak-xiong.session-helper >nul 2>&1
 echo [OK] 已尝试卸载扩展
 
-:: 移除 MCP 配置（仅移除 session-helper，保留其他配置）
+:: 移除 MCP 配置
 echo.
 echo [2/2] 清理 MCP 配置...
-python "%~dp0mcp-server-python\install_mcp_config.py" --uninstall
+python "%~dp0server\setup.py" --uninstall
 if errorlevel 1 (
     echo [警告] MCP 配置清理可能未完成
 )
