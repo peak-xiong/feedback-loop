@@ -18,8 +18,9 @@ def print_header():
     print()
 
 
-def get_script_dir() -> Path:
-    return Path(__file__).parent.resolve()
+def get_project_root() -> Path:
+    """获取项目根目录（scripts 的父目录）"""
+    return Path(__file__).parent.parent.resolve()
 
 
 def uninstall_extension():
@@ -39,8 +40,8 @@ def remove_mcp_config():
     """移除 MCP 配置"""
     print()
     print("[2/2] 清理 MCP 配置...")
-    script_dir = get_script_dir()
-    setup_script = script_dir / "server" / "setup.py"
+    root = get_project_root()
+    setup_script = root / "server" / "setup.py"
     
     if setup_script.exists():
         try:

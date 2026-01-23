@@ -27,8 +27,9 @@ def print_header():
     print()
 
 
-def get_script_dir() -> Path:
-    return Path(__file__).parent.resolve()
+def get_project_root() -> Path:
+    """获取项目根目录（scripts 的父目录）"""
+    return Path(__file__).parent.parent.resolve()
 
 
 # =============================================================================
@@ -51,8 +52,8 @@ def install_dependencies():
     """安装 Python 依赖"""
     print()
     print("[2/5] 安装 MCP Server 依赖...")
-    script_dir = get_script_dir()
-    requirements = script_dir / "server" / "requirements.txt"
+    root = get_project_root()
+    requirements = root / "server" / "requirements.txt"
     
     if not requirements.exists():
         print(f"[错误] 找不到 requirements.txt: {requirements}")
@@ -74,8 +75,8 @@ def configure_mcp():
     """配置 MCP"""
     print()
     print("[3/5] 配置 MCP...")
-    script_dir = get_script_dir()
-    setup_script = script_dir / "server" / "setup.py"
+    root = get_project_root()
+    setup_script = root / "server" / "setup.py"
     
     if not setup_script.exists():
         print(f"[错误] 找不到 setup.py: {setup_script}")
@@ -93,8 +94,8 @@ def prompt_install_extension():
     """提示安装扩展"""
     print()
     print("[4/5] 安装 Windsurf 扩展...")
-    script_dir = get_script_dir()
-    vsix = script_dir / "extension" / "session-helper-1.2.0.vsix"
+    root = get_project_root()
+    vsix = root / "extension" / "session-helper-1.2.0.vsix"
     
     if not vsix.exists():
         print(f"[警告] VSIX 文件不存在: {vsix}")
@@ -106,7 +107,6 @@ def prompt_install_extension():
         print(f"       3. 选择: {vsix}")
         
         if IS_WINDOWS:
-            # Windows: 打开文件管理器并选中文件
             subprocess.run(["explorer", "/select,", str(vsix)], shell=True)
 
 
@@ -114,8 +114,8 @@ def configure_rules():
     """配置全局规则"""
     print()
     print("[5/5] 配置全局规则...")
-    script_dir = get_script_dir()
-    rules_src = script_dir / "rules" / "example-windsurfrules.txt"
+    root = get_project_root()
+    rules_src = root / "rules" / "example-windsurfrules.txt"
     
     if not rules_src.exists():
         print(f"[警告] 规则文件不存在: {rules_src}")
@@ -130,7 +130,6 @@ def configure_rules():
         targets.append(HOME / ".windsurfrules")
     else:
         targets.append(HOME / ".windsurfrules")
-        # macOS/Linux 额外位置
         codeium_rules = HOME / ".codeium" / "windsurf" / "memories" / "global_rules.md"
         if codeium_rules.parent.exists():
             targets.append(codeium_rules)
@@ -138,12 +137,10 @@ def configure_rules():
     for target in targets:
         try:
             if target.exists():
-                # 备份
                 backup = target.with_suffix(target.suffix + ".backup")
                 shutil.copy2(target, backup)
                 print(f"[备份] {backup}")
                 
-                # 对于 global_rules.md，追加内容
                 if target.name == "global_rules.md":
                     with open(target, "a", encoding="utf-8") as f:
                         f.write("\n\n")

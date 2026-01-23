@@ -13,24 +13,19 @@
 ## 🚀 安装
 
 ```bash
-python3 install.py
+# macOS / Linux
+python3 scripts/install.py
+
+# Windows (双击运行)
+scripts\install.bat
 ```
-
-> Windows 用户也可双击运行 `install.bat`
-
-### 规则文件位置
-
-| 平台 | 路径 |
-|------|------|
-| Windows | `%USERPROFILE%\.windsurfrules` |
-| macOS/Linux | `~/.windsurfrules` 或 `~/.codeium/windsurf/memories/global_rules.md` |
 
 ---
 
 ## 🗑️ 卸载
 
 ```bash
-python3 uninstall.py
+python3 scripts/uninstall.py
 ```
 
 ---
@@ -38,11 +33,18 @@ python3 uninstall.py
 ## 📁 项目结构
 
 ```
-├── install.py / uninstall.py  # 跨平台安装脚本
-├── server/                    # MCP 服务器 (Python)
-├── extension/                 # VS Code 扩展 (TypeScript)
-├── rules/                     # 规则模板
-└── scripts/rename.py          # 快速重命名工具
+session-helper/
+├── server/              # MCP 服务器 (Python)
+│   ├── server.py
+│   ├── setup.py
+│   └── requirements.txt
+├── extension/           # VS Code 扩展 (TypeScript)
+├── rules/               # 规则模板
+└── scripts/             # 工具脚本
+    ├── install.py       # 安装脚本
+    ├── uninstall.py     # 卸载脚本
+    ├── rename.py        # 快速重命名
+    └── *.bat            # Windows 包装器
 ```
 
 ---
@@ -50,17 +52,17 @@ python3 uninstall.py
 ## 🔄 快速重命名（突破屏蔽）
 
 ```bash
-# 1. 编辑 scripts/rename.py，修改 NAME
-NAME = "dev-helper"  # 改成新名称
+# 1. 编辑 NAME
+vim scripts/rename.py
 
-# 2. 运行脚本
+# 2. 运行
 python3 scripts/rename.py
 
-# 3. 重新编译打包
+# 3. 重新编译
 cd extension && npm run compile && npm run package
 
 # 4. 重新安装
-python3 install.py
+python3 scripts/install.py
 ```
 
 ---
