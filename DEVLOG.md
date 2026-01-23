@@ -1,26 +1,8 @@
 # Session Helper 开发日记
 
-> 作者：Rhongomiant1227
+> 作者：Peak Xiong
 > 
-> 记录我开发这个"无限对话"工具的全过程
-
----
-
-## 缘起：闲鱼惊现"AI无限对话"？
-
-那天刷闲鱼，看到有人在卖一个叫"AI无限对话"的工具。
-
-点进去一看——功能描述：让 Windsurf 的 AI 对话可以无限继续。标价几十块。
-
-我人傻了。
-
-这玩意儿有什么技术含量？一个 MCP Server + 一个 VS Code 扩展，通过 HTTP 通信，弹个窗问用户要不要继续。就这？
-
-在 Vibe Coding 时代，随便一个会用智能 IDE 的人，让 AI 帮忙写，一天都能搞定。结果有人靠信息差割韭菜？
-
-行，那我就开源，直接砸场子。
-
-**对那些拿这东西卖钱的朋友：不好意思，我来了。** 😎
+> 记录开发这个"无限对话"工具的全过程
 
 ---
 
@@ -120,16 +102,8 @@ async function cleanupOldMcpProcesses(): Promise<void> {
 
 但说实话，这些问题让 AI 帮忙调试，一天内都能解决。
 
-所以我真的想不通，这种东西怎么还有人拿去卖钱？还有人买？
-
-**各位，这东西完全免费开源。如果有人找你收费，直接举报。**
-
-别被割韭菜了。
-
 ---
 
-*Rhongomiant1227*
+*Peak Xiong*
 
-*GitHub: https://github.com/Rhongomiant1227*
-
-*B站: https://space.bilibili.com/21070946*
+*GitHub: https://github.com/peak-xiong*

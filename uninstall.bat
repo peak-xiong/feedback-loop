@@ -9,7 +9,7 @@ echo.
 
 :: 卸载 VS Code 扩展
 echo [1/2] 卸载 Windsurf 扩展...
-code --uninstall-extension Rhongomiant1227.session-helper >nul 2>&1
+code --uninstall-extension peak-xiong.session-helper >nul 2>&1
 echo [OK] 已尝试卸载扩展
 
 :: 移除 MCP 配置（仅移除 session-helper，保留其他配置）

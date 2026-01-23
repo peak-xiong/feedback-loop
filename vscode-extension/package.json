@@ -3,15 +3,15 @@
   "displayName": "Session Helper",
   "description": "Development session management utilities",
   "version": "1.2.0",
-  "publisher": "Rhongomiant1227",
+  "publisher": "peak-xiong",
   "author": {
-    "name": "Rhongomiant1227",
-    "url": "https://github.com/Rhongomiant1227"
+    "name": "Peak Xiong",
+    "url": "https://github.com/peak-xiong"
   },
-  "homepage": "https://github.com/Rhongomiant1227",
+  "homepage": "https://github.com/peak-xiong/session-helper",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Rhongomiant1227/session-helper"
+    "url": "https://github.com/peak-xiong/session-helper"
   },
   "engines": {
     "vscode": "^1.85.0"

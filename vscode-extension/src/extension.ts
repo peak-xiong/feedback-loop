@@ -251,7 +251,7 @@ async function sendResponseToMCP(
 /**
  * Show the Session Checkpoint dialog
  */
-async function showAskContinueDialog(request: AskRequest): Promise<void> {
+async function showSessionCheckpointDialog(request: AskRequest): Promise<void> {
   // 保存当前请求，以便重新打开
   lastPendingRequest = request;
   lastPendingRequestTime = Date.now();
@@ -769,7 +769,7 @@ function startServer(port: number, retryCount = 0): void {
             // Show dialog with error handling
             try {
               // 使用 await 确保 webview 创建完成
-              await showAskContinueDialog(request);
+              await showSessionCheckpointDialog(request);
               
               // Update request count in sidebar
               statusViewProvider?.incrementRequestCount();
@@ -1014,7 +1014,7 @@ export function activate(context: vscode.ExtensionContext): void {
           vscode.window.showWarningMessage("Session Helper: Request has expired");
           return;
         }
-        showAskContinueDialog(lastPendingRequest);
+        showSessionCheckpointDialog(lastPendingRequest);
       } else {
         vscode.window.showInformationMessage("Session Helper: No pending requests");
       }
