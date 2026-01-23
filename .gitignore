@@ -3,6 +3,11 @@ node_modules/
 __pycache__/
 *.pyc
 
+# Python virtual environments
+.venv/
+venv/
+.mypy_cache/
+
 # Build outputs
 dist/
 *.vsix
@@ -19,5 +24,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Lock files (optional, uncomment if you want to include them)
+# History (VS Code local history)
+.history/
+
+# Lock files (optional)
 # package-lock.json
