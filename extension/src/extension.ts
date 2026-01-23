@@ -584,7 +584,7 @@ function getWebviewContent(reason: string, requestId: string): string {
     </div>
     
     <div class="shortcuts">
-      Shortcuts: <kbd>Enter</kbd> = Continue | <kbd>Shift</kbd>+<kbd>Enter</kbd> = New line | <kbd>Esc</kbd> = End
+      Shortcuts: <kbd>Esc</kbd> = End Session | Click <strong>Continue</strong> button to proceed
     </div>
   </div>
   
@@ -606,11 +606,9 @@ function getWebviewContent(reason: string, requestId: string): string {
     textarea.focus();
     
     // Handle keyboard shortcuts
+    // Note: Enter key disabled to prevent accidental submission while typing
     textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submitContinue();
-      } else if (e.key === 'Escape') {
+      if (e.key === 'Escape') {
         e.preventDefault();
         submitEnd();
       }
