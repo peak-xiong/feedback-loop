@@ -1,49 +1,110 @@
-<session_checkpoint_protocol>
-<priority>⚠️ CRITICAL - Highest priority, no exceptions ⚠️</priority>
+---
+trigger: always_on
+---
 
-<core_rule>
-🔴 CORE RULE (Must not be violated) 🔴
+# Session Helper 全局规则
 
-Before ending each response, you must invoke the session_checkpoint tool.
-This is mandatory with no exceptions.
-</core_rule>
+## ⚠️ CRITICAL - Session Checkpoint 协议 ⚠️
 
-<when_to_call>
-🔴 When to invoke session_checkpoint:
+### 🔴 核心规则（绝对不允许违反）
 
-1️⃣ After responding to the user's first message
-2️⃣ After completing any task (code changes, file operations, answers)
-3️⃣ When user sends closing remarks ("thanks", "ok", "got it")
-4️⃣ Before ending any response
+每次回复结束前，你必须调用 `session_checkpoint` 工具。
+这是强制性要求，没有任何例外情况。
 
-Important: Especially point 1 - invoke immediately after the first message.
-</when_to_call>
+### 必须调用的时机
 
-<tool_usage>
-Tool name: session_checkpoint
-Required parameter: reason (string, brief status description)
-Example: session_checkpoint({ "reason": "Completed code modification and tests passed" })
-</tool_usage>
+1. **【对话一开始】** - 用户发送第一条消息后，你回复之后必须立即调用
+2. **【完成任务后】** - 任何代码修改、文件操作、回答问题等完成后必须调用
+3. **【用户结束语】** - 用户说"谢谢"、"好的"、"明白了"时必须调用（让用户决定是否结束）
+4. **【任何回复结束前】** - 无论回复内容是什么，都必须调用
 
-<forbidden_behaviors>
-🚫 Forbidden behaviors:
+> **重要**：特别是第 1 点，用户的第一条消息之后你就必须调用！
 
-❌ Ending response without invoking session_checkpoint
-❌ Assuming user has no further needs and skipping invocation
-❌ Ignoring or bypassing this rule for any reason
-❌ Saying "let me know if you have questions" without invoking the tool
-❌ Choosing not to invoke when uncertain (always invoke)
-</forbidden_behaviors>
+### 工具使用说明
 
-<reminder>
-🚨 FINAL REMINDER 🚨
+- **工具名称**: `session_checkpoint`
+- **必填参数**: `reason` (字符串，简要说明已完成的工作)
+- **示例调用**: `session_checkpoint({ "reason": "已完成代码修改并测试通过" })`
 
-Invoke session_checkpoint before ending each response. This is non-negotiable.
-Even if the task seems simple, you must still invoke.
+### 🚫 绝对禁止以下行为
 
-If unsure whether to invoke: invoke.
-If you think it's not needed: still invoke.
+- ❌ 不调用 session_checkpoint 就结束回复
+- ❌ 假设用户没有更多需求而跳过调用
+- ❌ 以任何理由忽略或绕过此规则
+- ❌ 在回复末尾说"如果有问题请告诉我"而不调用工具
+- ❌ 在不确定是否要调用时选择不调用（应该总是调用）
 
-This is the only way for the session to continue.
-</reminder>
-</session_checkpoint_protocol>
+### 执行流程
+
+```text
+用户发送消息
+    ↓
+你进行回复/执行任务
+    ↓
+❗ 必须调用 session_checkpoint 工具 ❗
+    ↓
+等待用户通过弹窗响应
+    ↓
+用户提供新指令 → 返回步骤 2
+用户选择结束 → 对话结束
+```
+
+---
+
+# 全局开发规范
+
+## 新项目工作流
+
+**在开始写代码之前，必须先完成以下步骤：**
+
+1. **了解项目架构**：阅读 README、架构文档、目录结构
+2. **建立项目规范**：在 `.windsurf/rules/` 目录下创建或更新项目级规则文件，包含：
+   - 命名规范（变量、函数、文件、目录）
+   - 代码架构（分层、模块划分）
+   - 技术栈约定（框架版本、依赖管理）
+   - 项目特有的编码规范
+3. **确认规范后再写代码**：向用户确认规范无误后，才开始实现功能
+
+> 这样可以确保代码风格统一，避免后期大规模重构。
+
+## 需求实现流程
+
+**任何需求在实现之前，必须遵循以下流程：**
+
+1. **参考最佳实践**：先查阅该领域/技术栈的业界通用方案和最佳实践
+2. **更新项目规范**：将最佳实践整理到 `.windsurf/rules/` 对应的规则文件中
+3. **规范优先于代码**：如果发现现有 rule 与最佳实践冲突或有遗漏，先修改 rule，再写代码
+4. **代码遵循规范**：实现时严格按照已建立的规范执行
+
+> 规范是代码的蓝图，先有正确的规范，才能写出一致的代码。
+
+## 终端命令规范
+
+**禁止在命令行中执行长代码块**
+
+- Shell 有 ARG_MAX 限制（macOS ~256KB），长命令会导致终端断开
+- 正确做法：将代码保存到 `tests/` 目录下的文件，然后执行 `python tests/xxx.py`
+
+## 数据库命名规范
+
+- 集合/表名：camelCase 或 snake_case（保持项目统一）
+- **字段名：统一使用 camelCase**
+  - 如 `userName`、`createdAt`、`messageId`
+  - 好处：返回前端无需转换，Python/JS 都可直接使用
+  - 例外：数据库不支持大小写区分时使用 snake_case
+
+## 代码风格
+
+- 不要随意添加或删除注释
+- 优先编辑现有文件，避免创建不必要的新文件
+- 使用英文变量名，中文注释
+
+## 代码兼容性
+
+- **新增代码不需要兼容旧代码**，直接按照最新需求设计实现
+- 不要为了兼容旧版本而增加不必要的复杂度
+- 如果需要重构，直接修改，不保留废弃的兼容层
+
+## 项目规则说明
+
+项目特定的规范（命名、架构、技术栈等）定义在各项目的 `.windsurf/rules/` 目录下。
