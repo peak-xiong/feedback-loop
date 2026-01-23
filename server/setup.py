@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 MCP 配置安装脚本
-安全地将 session-helper 配置合并到现有的 mcp_config.json 中，不会覆盖其他配置
+安全地将 session-helper 配置合并到现有的 mcp_config.json 中
+自动使用虚拟环境的 Python
 """
 
 import json
@@ -12,17 +13,41 @@ from pathlib import Path
 from datetime import datetime
 
 
-def get_mcp_config_path():
+def get_project_root() -> Path:
+    """获取项目根目录"""
+    return Path(__file__).parent.parent.resolve()
+
+
+def get_venv_python() -> str:
+    """获取虚拟环境 Python 路径"""
+    # 优先使用环境变量（由 install.py 传递）
+    if "VENV_PYTHON" in os.environ:
+        return os.environ["VENV_PYTHON"]
+    
+    # 否则构建路径
+    root = get_project_root()
+    if sys.platform == "win32":
+        venv_python = root / ".venv" / "Scripts" / "python.exe"
+    else:
+        venv_python = root / ".venv" / "bin" / "python"
+    
+    if venv_python.exists():
+        return str(venv_python)
+    
+    # 回退到系统 Python
+    return "python" if sys.platform == "win32" else "python3"
+
+
+def get_mcp_config_path() -> Path:
     """获取 Windsurf MCP 配置文件路径"""
     home = Path.home()
     return home / ".codeium" / "windsurf" / "mcp_config.json"
 
 
-def get_server_path():
+def get_server_path() -> str:
     """获取 server.py 的绝对路径（使用正斜杠）"""
     script_dir = Path(__file__).parent.resolve()
     server_path = script_dir / "server.py"
-    # 转换为正斜杠格式
     return str(server_path).replace("\\", "/")
 
 
@@ -38,7 +63,7 @@ def backup_config(config_path: Path):
 
 
 def load_existing_config(config_path: Path) -> dict:
-    """加载现有配置，如果不存在或无效则返回空配置"""
+    """加载现有配置"""
     if not config_path.exists():
         return {"mcpServers": {}}
     
@@ -48,13 +73,11 @@ def load_existing_config(config_path: Path) -> dict:
             if not content:
                 return {"mcpServers": {}}
             config = json.loads(content)
-            # 确保 mcpServers 字段存在
             if "mcpServers" not in config:
                 config["mcpServers"] = {}
             return config
     except json.JSONDecodeError as e:
-        print(f"[警告] 现有配置文件 JSON 格式无效: {e}")
-        print("[提示] 将创建新配置，原文件已备份")
+        print(f"[警告] 配置文件 JSON 格式无效: {e}")
         return {"mcpServers": {}}
     except Exception as e:
         print(f"[警告] 读取配置文件失败: {e}")
@@ -65,9 +88,11 @@ def install_mcp_config():
     """安装/更新 MCP 配置"""
     config_path = get_mcp_config_path()
     server_path = get_server_path()
+    venv_python = get_venv_python()
     
     print(f"[信息] MCP 配置路径: {config_path}")
     print(f"[信息] Server 路径: {server_path}")
+    print(f"[信息] Python 路径: {venv_python}")
     
     # 确保目录存在
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -78,23 +103,20 @@ def install_mcp_config():
     # 加载现有配置
     config = load_existing_config(config_path)
     
-    # 检查是否已存在 session-helper 配置
     if "session-helper" in config["mcpServers"]:
         print("[信息] 检测到已有 session-helper 配置，将更新")
     
-    # 添加/更新 session-helper 配置
+    # 添加/更新配置（使用虚拟环境 Python）
     config["mcpServers"]["session-helper"] = {
-        "command": "python",
+        "command": venv_python,
         "args": [server_path]
     }
     
-    # 写入配置
     try:
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
         print(f"[OK] MCP 配置已更新: {config_path}")
         
-        # 显示当前所有配置的 MCP 服务器
         servers = list(config["mcpServers"].keys())
         print(f"[信息] 当前已配置的 MCP 服务器: {', '.join(servers)}")
         return True
@@ -104,27 +126,22 @@ def install_mcp_config():
 
 
 def uninstall_mcp_config():
-    """卸载 session-helper 配置（保留其他配置）"""
+    """卸载 session-helper 配置"""
     config_path = get_mcp_config_path()
     
     if not config_path.exists():
         print("[信息] 配置文件不存在，无需卸载")
         return True
     
-    # 备份
     backup_config(config_path)
-    
-    # 加载配置
     config = load_existing_config(config_path)
     
-    # 移除 session-helper
     if "session-helper" in config["mcpServers"]:
         del config["mcpServers"]["session-helper"]
         print("[OK] 已移除 session-helper 配置")
     else:
         print("[信息] session-helper 配置不存在")
     
-    # 写回
     try:
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)

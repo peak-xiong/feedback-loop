@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Session Helper - 跨平台安装脚本
-自动检测操作系统并执行相应安装流程
+自动检测操作系统，创建虚拟环境，执行安装流程
 """
 
 import os
@@ -32,13 +32,27 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent.resolve()
 
 
+def get_venv_dir() -> Path:
+    """获取虚拟环境目录"""
+    return get_project_root() / ".venv"
+
+
+def get_venv_python() -> Path:
+    """获取虚拟环境中的 Python 路径"""
+    venv = get_venv_dir()
+    if IS_WINDOWS:
+        return venv / "Scripts" / "python.exe"
+    else:
+        return venv / "bin" / "python"
+
+
 # =============================================================================
 # 安装步骤
 # =============================================================================
 
 def check_python():
     """检查 Python 环境"""
-    print("[1/5] 检查 Python 环境...")
+    print("[1/6] 检查 Python 环境...")
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 10):
         print(f"[错误] Python 版本过低: {sys.version}")
@@ -48,12 +62,36 @@ def check_python():
     return True
 
 
-def install_dependencies():
-    """安装 Python 依赖"""
+def create_venv():
+    """创建虚拟环境"""
     print()
-    print("[2/5] 安装 MCP Server 依赖...")
+    print("[2/6] 创建虚拟环境...")
+    venv_dir = get_venv_dir()
+    venv_python = get_venv_python()
+    
+    if venv_python.exists():
+        print(f"[OK] 虚拟环境已存在: {venv_dir}")
+        return True
+    
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "venv", str(venv_dir)],
+            check=True
+        )
+        print(f"[OK] 虚拟环境已创建: {venv_dir}")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"[错误] 创建虚拟环境失败: {e}")
+        return False
+
+
+def install_dependencies():
+    """安装 Python 依赖到虚拟环境"""
+    print()
+    print("[3/6] 安装 MCP Server 依赖...")
     root = get_project_root()
     requirements = root / "server" / "requirements.txt"
+    venv_python = get_venv_python()
     
     if not requirements.exists():
         print(f"[错误] 找不到 requirements.txt: {requirements}")
@@ -61,7 +99,7 @@ def install_dependencies():
     
     try:
         subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", str(requirements), "-q"],
+            [str(venv_python), "-m", "pip", "install", "-r", str(requirements), "-q", "--upgrade"],
             check=True
         )
         print("[OK] 依赖安装完成")
@@ -72,18 +110,23 @@ def install_dependencies():
 
 
 def configure_mcp():
-    """配置 MCP"""
+    """配置 MCP（使用虚拟环境的 Python）"""
     print()
-    print("[3/5] 配置 MCP...")
+    print("[4/6] 配置 MCP...")
     root = get_project_root()
     setup_script = root / "server" / "setup.py"
+    venv_python = get_venv_python()
     
     if not setup_script.exists():
         print(f"[错误] 找不到 setup.py: {setup_script}")
         return False
     
+    # 传递虚拟环境 Python 路径给 setup.py
+    env = os.environ.copy()
+    env["VENV_PYTHON"] = str(venv_python)
+    
     try:
-        subprocess.run([sys.executable, str(setup_script)], check=True)
+        subprocess.run([sys.executable, str(setup_script)], check=True, env=env)
         return True
     except subprocess.CalledProcessError as e:
         print(f"[错误] MCP 配置失败: {e}")
@@ -93,7 +136,7 @@ def configure_mcp():
 def prompt_install_extension():
     """提示安装扩展"""
     print()
-    print("[4/5] 安装 Windsurf 扩展...")
+    print("[5/6] 安装 Windsurf 扩展...")
     root = get_project_root()
     vsix = root / "extension" / "session-helper-1.2.0.vsix"
     
@@ -113,7 +156,7 @@ def prompt_install_extension():
 def configure_rules():
     """配置全局规则"""
     print()
-    print("[5/5] 配置全局规则...")
+    print("[6/6] 配置全局规则...")
     root = get_project_root()
     rules_src = root / "rules" / "example-windsurfrules.txt"
     
@@ -164,12 +207,18 @@ def print_success():
     print("  [1] 重启 Windsurf")
     print("  [2] 开始对话，AI 完成任务后会自动弹窗")
     print()
+    print(f"虚拟环境: {get_venv_dir()}")
+    print()
 
 
 def main():
     print_header()
     
     if not check_python():
+        input("按 Enter 退出...")
+        sys.exit(1)
+    
+    if not create_venv():
         input("按 Enter 退出...")
         sys.exit(1)
     
