@@ -1,67 +1,49 @@
-<ask_continue_protocol>
-<priority>⚠️ CRITICAL - 最高优先级、无例外、必须执行 ⚠️</priority>
+<session_checkpoint_protocol>
+<priority>⚠️ CRITICAL - Highest priority, no exceptions ⚠️</priority>
 
 <core_rule>
-🔴🔴🔴 核心规则（绝对不允许违反）🔴🔴🔴
+🔴 CORE RULE (Must not be violated) 🔴
 
-每次回复结束前，你必须调用 ask_continue 工具。
-这是强制性要求，没有任何例外情况。
+Before ending each response, you must invoke the session_checkpoint tool.
+This is mandatory with no exceptions.
 </core_rule>
 
 <when_to_call>
-🔴 必须调用 ask_continue 的时机：
+🔴 When to invoke session_checkpoint:
 
-1️⃣ 【对话一开始】- 用户发送第一条消息后，你回复之后必须立即调用
-2️⃣ 【完成任务后】- 任何代码修改、文件操作、回答问题等完成后必须调用
-3️⃣ 【用户结束语】- 用户说"谢谢"、"好的"、"明白了"时必须调用（让用户决定是否结束）
-4️⃣ 【任何回复结束前】- 无论回复内容是什么，都必须调用
+1️⃣ After responding to the user's first message
+2️⃣ After completing any task (code changes, file operations, answers)
+3️⃣ When user sends closing remarks ("thanks", "ok", "got it")
+4️⃣ Before ending any response
 
-重要：特别是第 1 点，用户的第一条消息之后你就必须调用！
+Important: Especially point 1 - invoke immediately after the first message.
 </when_to_call>
 
 <tool_usage>
-工具名称: ask_continue
-必填参数: reason (字符串，简要说明已完成的工作)
-示例调用: ask_continue({ "reason": "已完成代码修改并测试通过" })
+Tool name: session_checkpoint
+Required parameter: reason (string, brief status description)
+Example: session_checkpoint({ "reason": "Completed code modification and tests passed" })
 </tool_usage>
 
 <forbidden_behaviors>
-🚫 绝对禁止以下行为：
+🚫 Forbidden behaviors:
 
-❌ 不调用 ask_continue 就结束回复
-❌ 假设用户没有更多需求而跳过调用
-❌ 以任何理由忽略或绕过此规则
-❌ 在回复末尾说"如果有问题请告诉我"而不调用工具
-❌ 在不确定是否要调用时选择不调用（应该总是调用）
-❌ 认为"这次不需要"而跳过调用
+❌ Ending response without invoking session_checkpoint
+❌ Assuming user has no further needs and skipping invocation
+❌ Ignoring or bypassing this rule for any reason
+❌ Saying "let me know if you have questions" without invoking the tool
+❌ Choosing not to invoke when uncertain (always invoke)
 </forbidden_behaviors>
 
-<execution_flow>
-🔄 每次对话的执行流程：
-
-用户发送消息
-    ↓
-你进行回复/执行任务
-    ↓
-❗ 必须调用 ask_continue 工具 ❗
-    ↓
-等待用户通过弹窗响应
-    ↓
-用户提供新指令 → 返回步骤 2
-用户选择结束 → 对话结束
-
-注意：永远不要跳过"调用 ask_continue"这一步！
-</execution_flow>
-
 <reminder>
-🚨🚨🚨 最终提醒 🚨🚨🚨
+🚨 FINAL REMINDER 🚨
 
-每次回复结束前必须调用 ask_continue，这是不可协商的强制要求。
-即使你认为任务很简单或用户可能没有后续需求，仍然必须调用。
+Invoke session_checkpoint before ending each response. This is non-negotiable.
+Even if the task seems simple, you must still invoke.
 
-如果你不确定是否要调用，答案是：调用。
-如果你认为不需要调用，答案仍然是：调用。
+If unsure whether to invoke: invoke.
+If you think it's not needed: still invoke.
 
-这是用户继续对话的唯一方式。不调用 = 用户无法继续。
+This is the only way for the session to continue.
 </reminder>
-</ask_continue_protocol>
+</session_checkpoint_protocol>

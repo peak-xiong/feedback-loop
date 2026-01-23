@@ -1,8 +1,8 @@
 {
-  "name": "windsurf-ask-continue",
-  "displayName": "Windsurf Ask Continue",
-  "description": "让 AI 对话永不结束 - 仅支持 Windsurf IDE",
-  "version": "1.1.0",
+  "name": "session-helper",
+  "displayName": "Session Helper",
+  "description": "Development session management utilities",
+  "version": "1.2.0",
   "publisher": "Rhongomiant1227",
   "author": {
     "name": "Rhongomiant1227",
@@ -11,7 +11,7 @@
   "homepage": "https://github.com/Rhongomiant1227",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Rhongomiant1227/Windsurf_Ask_Continue"
+    "url": "https://github.com/Rhongomiant1227/session-helper"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -20,11 +20,10 @@
     "Other"
   ],
   "keywords": [
-    "mcp",
-    "ai",
-    "windsurf",
-    "continue",
-    "infinite"
+    "session",
+    "workflow",
+    "productivity",
+    "checkpoint"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -33,52 +32,52 @@
   "contributes": {
     "commands": [
       {
-        "command": "askContinue.showStatus",
-        "title": "Ask Continue: Show Status",
+        "command": "sessionHelper.showStatus",
+        "title": "Session Helper: Show Status",
         "icon": "$(info)"
       },
       {
-        "command": "askContinue.restart",
-        "title": "Ask Continue: Restart Server",
+        "command": "sessionHelper.restart",
+        "title": "Session Helper: Restart",
         "icon": "$(refresh)"
       },
       {
-        "command": "askContinue.openPanel",
-        "title": "Ask Continue: Open Panel",
+        "command": "sessionHelper.openPanel",
+        "title": "Session Helper: Open Panel",
         "icon": "$(comment-discussion)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "askContinue",
-          "title": "Ask Continue",
+          "id": "sessionHelper",
+          "title": "Session Helper",
           "icon": "$(comment-discussion)"
         }
       ]
     },
     "views": {
-      "askContinue": [
+      "sessionHelper": [
         {
           "type": "webview",
-          "id": "askContinue.statusView",
-          "name": "状态面板",
+          "id": "sessionHelper.statusView",
+          "name": "Status Panel",
           "icon": "$(comment-discussion)"
         }
       ]
     },
     "configuration": {
-      "title": "Ask Continue",
+      "title": "Session Helper",
       "properties": {
-        "askContinue.serverPort": {
+        "sessionHelper.serverPort": {
           "type": "number",
           "default": 23983,
-          "description": "Port for the Ask Continue HTTP server"
+          "description": "Port for the Session Helper HTTP server"
         },
-        "askContinue.autoStart": {
+        "sessionHelper.autoStart": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically start the server when Windsurf opens"
+          "description": "Automatically start the server when IDE opens"
         }
       }
     }

@@ -1,4 +1,4 @@
-# Windsurf Ask Continue 开发日记
+# Session Helper 开发日记
 
 > 作者：Rhongomiant1227
 > 
@@ -27,7 +27,7 @@
 ## 搭建基础架构
 
 目标很简单：
-1. 写一个 MCP Server（Python），提供 `ask_continue` 工具
+1. 写一个 MCP Server（Python），提供 `session_checkpoint` 工具
 2. 写一个 Windsurf 扩展（TypeScript），弹窗询问用户是否继续
 3. 两者通过 HTTP 通信
 

@@ -1,12 +1,12 @@
 @echo off
 chcp 65001 >nul
-title Ask Continue - 一键安装
+title Session Helper - 一键安装
 
 :: 保存用户当前工作目录
 set "USER_PROJECT_DIR=%CD%"
 
 echo ============================================
-echo    Ask Continue - 继续牛马 MCP 工具
+echo    Session Helper - MCP 工具
 echo    一键安装脚本
 echo ============================================
 echo.
@@ -47,7 +47,7 @@ if errorlevel 1 (
 :: 安装 VS Code 扩展
 echo.
 echo [4/5] 安装 Windsurf 扩展...
-set "VSIX_FILE=%~dp0windsurf-ask-continue-1.1.0.vsix"
+set "VSIX_FILE=%~dp0vscode-extension\session-helper-1.2.0.vsix"
 
 if not exist "%VSIX_FILE%" (
     echo [警告] VSIX 文件不存在: %VSIX_FILE%

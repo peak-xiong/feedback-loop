@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MCP 配置安装脚本
-安全地将 ask-continue 配置合并到现有的 mcp_config.json 中，不会覆盖其他配置
+安全地将 session-helper 配置合并到现有的 mcp_config.json 中，不会覆盖其他配置
 """
 
 import json
@@ -78,12 +78,12 @@ def install_mcp_config():
     # 加载现有配置
     config = load_existing_config(config_path)
     
-    # 检查是否已存在 ask-continue 配置
-    if "ask-continue" in config["mcpServers"]:
-        print("[信息] 检测到已有 ask-continue 配置，将更新")
+    # 检查是否已存在 session-helper 配置
+    if "session-helper" in config["mcpServers"]:
+        print("[信息] 检测到已有 session-helper 配置，将更新")
     
-    # 添加/更新 ask-continue 配置
-    config["mcpServers"]["ask-continue"] = {
+    # 添加/更新 session-helper 配置
+    config["mcpServers"]["session-helper"] = {
         "command": "python",
         "args": [server_path]
     }
@@ -104,7 +104,7 @@ def install_mcp_config():
 
 
 def uninstall_mcp_config():
-    """卸载 ask-continue 配置（保留其他配置）"""
+    """卸载 session-helper 配置（保留其他配置）"""
     config_path = get_mcp_config_path()
     
     if not config_path.exists():
@@ -117,12 +117,12 @@ def uninstall_mcp_config():
     # 加载配置
     config = load_existing_config(config_path)
     
-    # 移除 ask-continue
-    if "ask-continue" in config["mcpServers"]:
-        del config["mcpServers"]["ask-continue"]
-        print("[OK] 已移除 ask-continue 配置")
+    # 移除 session-helper
+    if "session-helper" in config["mcpServers"]:
+        del config["mcpServers"]["session-helper"]
+        print("[OK] 已移除 session-helper 配置")
     else:
-        print("[信息] ask-continue 配置不存在")
+        print("[信息] session-helper 配置不存在")
     
     # 写回
     try:

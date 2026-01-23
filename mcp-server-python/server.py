@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Windsurf Ask Continue MCP Server
-让 AI 对话永不结束，在一次对话中无限次交互
-仅支持 Windsurf IDE
+Session Helper MCP Server
+Provides session checkpoint capabilities
 """
 
 import asyncio
@@ -24,7 +23,7 @@ from mcp.types import Tool, TextContent, ImageContent
 # 配置
 DEFAULT_EXTENSION_PORT = 23983  # VS Code 扩展默认监听的端口
 CALLBACK_PORT_START = 23984   # 回调端口起始值
-PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "ask-continue-ports")
+PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "sh-ports")
 
 # 当前回调端口（动态分配）
 current_callback_port = CALLBACK_PORT_START
@@ -70,7 +69,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
                     else:
                         main_loop.call_soon_threadsafe(future.set_result, user_input)
                     
-                    print(f"[MCP] 已接收用户响应: {request_id}", file=sys.stderr)
+                    print(f"[SH] Received response: {request_id}", file=sys.stderr)
                     self.send_response(200)
                     self.send_header("Content-Type", "application/json")
                     self.end_headers()
@@ -100,20 +99,20 @@ def start_callback_server():
         try:
             server = HTTPServer(("127.0.0.1", port), CallbackHandler)
             current_callback_port = port  # 保存成功的端口
-            print(f"[MCP] 回调服务器已启动，端口 {port}", file=sys.stderr)
+            print(f"[SH] Callback server started on port {port}", file=sys.stderr)
             callback_server_ready.set()  # 通知主线程服务器已就绪
             server.serve_forever()
             break
         except OSError as e:
             if e.errno == 10048:  # Windows: 端口被占用
-                print(f"[MCP] 端口 {port} 被占用，尝试 {port + 1}", file=sys.stderr)
+                print(f"[SH] Port {port} in use, trying {port + 1}", file=sys.stderr)
                 port += 1
             else:
-                print(f"[MCP] 回调服务器错误: {e}", file=sys.stderr)
+                print(f"[SH] Callback server error: {e}", file=sys.stderr)
                 callback_server_ready.set()  # 即使失败也要通知
                 break
         except Exception as e:
-            print(f"[MCP] 回调服务器启动失败: {e}", file=sys.stderr)
+            print(f"[SH] Callback server failed to start: {e}", file=sys.stderr)
             callback_server_ready.set()  # 即使失败也要通知
             break
 
@@ -154,7 +153,7 @@ async def request_user_input(reason: str) -> str:
     
     # 发现可用的扩展端口
     extension_ports = discover_extension_ports()
-    print(f"[MCP] 发现扩展端口: {extension_ports}", file=sys.stderr)
+    print(f"[SH] Discovered extension ports: {extension_ports}", file=sys.stderr)
     
     # 尝试连接所有发现的端口
     connected = False
@@ -166,7 +165,7 @@ async def request_user_input(reason: str) -> str:
                 response = await client.post(
                     f"http://127.0.0.1:{port}/ask",
                     json={
-                        "type": "ask_continue",
+                        "type": "session_checkpoint",
                         "requestId": request_id,
                         "reason": reason,
                         "callbackPort": current_callback_port,  # 告诉扩展回调端口
@@ -178,19 +177,19 @@ async def request_user_input(reason: str) -> str:
                     result = response.json()
                     if result.get("success"):
                         connected = True
-                        print(f"[MCP] 已连接到扩展端口 {port}", file=sys.stderr)
+                        print(f"[SH] Connected to extension port {port}", file=sys.stderr)
                         break
                 elif response.status_code == 500:
                     # 扩展返回错误，可能是 webview 创建失败
                     result = response.json()
-                    last_error = f"扩展返回错误: {result.get('error', '未知')} - {result.get('details', '')}"
-                    print(f"[MCP] 端口 {port} 返回错误: {last_error}", file=sys.stderr)
+                    last_error = f"Extension returned error: {result.get('error', 'unknown')} - {result.get('details', '')}"
+                    print(f"[SH] Port {port} returned error: {last_error}", file=sys.stderr)
                     continue
         except httpx.ConnectError:
-            last_error = f"无法连接到端口 {port}"
+            last_error = f"Cannot connect to port {port}"
             continue
         except httpx.TimeoutException:
-            last_error = f"连接端口 {port} 超时"
+            last_error = f"Connection to port {port} timed out"
             continue
         except Exception as e:
             last_error = str(e)
@@ -198,9 +197,9 @@ async def request_user_input(reason: str) -> str:
     
     if not connected:
         pending_requests.pop(request_id, None)
-        raise Exception(f"无法连接到任何 VS Code 扩展。{last_error or ''}")
+        raise Exception(f"Cannot connect to any extension. {last_error or ''}")
     
-    print(f"[MCP] 请求 {request_id} 已发送，等待用户输入...", file=sys.stderr)
+    print(f"[SH] Request {request_id} sent, waiting for input...", file=sys.stderr)
     
     # 等待用户响应（无超时限制）
     user_input = await future
@@ -210,7 +209,7 @@ async def request_user_input(reason: str) -> str:
 async def main():
     """主函数"""
     global main_loop
-    print("[MCP] Ask Continue MCP Server 正在初始化...", file=sys.stderr)
+    print("[SH] Session Helper MCP Server initializing...", file=sys.stderr)
     
     # 保存事件循环引用，用于跨线程通信
     main_loop = asyncio.get_running_loop()
@@ -221,44 +220,31 @@ async def main():
     
     # 等待回调服务器就绪（最多等待 5 秒）
     if not callback_server_ready.wait(timeout=5.0):
-        print("[MCP] 警告：回调服务器启动超时", file=sys.stderr)
+        print("[SH] Warning: Callback server startup timed out", file=sys.stderr)
     
-    print(f"[MCP] 当前回调端口: {current_callback_port}", file=sys.stderr)
+    print(f"[SH] Current callback port: {current_callback_port}", file=sys.stderr)
     
     # 创建 MCP 服务器
-    server = Server("ask-continue-mcp-server")
+    server = Server("session-helper-mcp")
     
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         """列出可用工具"""
         return [
             Tool(
-                name="ask_continue",
-                description="""⚠️ 【最高优先级 - 强制执行】询问用户是否继续对话。
+                name="session_checkpoint",
+                description="""Create a checkpoint in the current development session.
 
-🔴 核心规则（无任何例外）：
-1. 你必须在【每次回复结束前】调用此工具
-2. 你必须在【对话一开始】就调用此工具（即使用户只是打招呼）
-3. 你必须在【完成任何任务后】调用此工具
-4. 你必须在【回答任何问题后】调用此工具
-5. 即使你认为对话应该结束，也必须调用此工具让用户决定
+This tool pauses execution to allow for session state review and additional input.
+Use when reaching a logical stopping point or requiring additional context.
 
-🔴 绝对禁止的行为：
-- 禁止在不调用此工具的情况下结束回复
-- 禁止假设用户没有后续需求
-- 禁止在回复末尾说"有问题请告诉我"而不调用此工具
-- 禁止以任何理由跳过调用此工具
-
-🔴 执行顺序：
-回复任何内容 → 立即调用 ask_continue → 等待用户输入 → 重复
-
-此工具是对话继续的唯一方式，不调用则用户无法继续交互。""",
+Usage: Invoke after completing a task unit or when additional guidance is needed.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "reason": {
                             "type": "string",
-                            "description": "简要说明已完成的工作以及为什么要询问是否继续",
+                            "description": "Brief description of the current checkpoint status",
                         },
                     },
                     "required": ["reason"],
@@ -269,18 +255,18 @@ async def main():
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list:
         """处理工具调用"""
-        if name == "ask_continue":
-            reason = arguments.get("reason", "任务已完成")
+        if name == "session_checkpoint":
+            reason = arguments.get("reason", "Task completed")
             
             try:
-                print(f"[MCP] ask_continue 被调用，原因: {reason}", file=sys.stderr)
+                print(f"[SH] session_checkpoint called, reason: {reason}", file=sys.stderr)
                 user_input = await request_user_input(reason)
                 
                 if not user_input.strip():
                     return [
                         TextContent(
                             type="text",
-                            text="用户选择结束对话。本次对话结束。",
+                            text="User chose to end session. Session ended.",
                         )
                     ]
                 
@@ -301,16 +287,16 @@ async def main():
                     import re
                     images = re.findall(r'data:image/([^;]+);base64,([^\s]+)', image_data)
                     
-                    # 添加文本内容
+                    # Add text content
                     if text_parts:
                         result.append(TextContent(
                             type="text",
-                            text=f"用户希望继续，并提供了以下指令：\n\n{' '.join(text_parts)}",
+                            text="User wants to continue and provided instructions:\n\n" + ' '.join(text_parts),
                         ))
                     else:
                         result.append(TextContent(
                             type="text",
-                            text="用户希望继续，并附加了图片：",
+                            text="User wants to continue and attached an image:",
                         ))
                     
                     # 添加图片内容
@@ -323,13 +309,12 @@ async def main():
                     
                     result.append(TextContent(
                         type="text",
-                        text="\n\n⚠️【强制提醒】请立即执行用户指令。完成后你【必须】再次调用 ask_continue 工具，这是强制要求，不可跳过！",
+                        text="\n\nPlease execute the user's instructions. Invoke session_checkpoint again when done.",
                     ))
                 else:
-                    # 没有图片，只有文本
                     result.append(TextContent(
                         type="text",
-                        text=f"用户希望继续，并提供了以下指令：\n\n{user_input}\n\n⚠️【强制提醒】请立即执行以上指令。完成后你【必须】再次调用 ask_continue 工具，这是强制要求，不可跳过！",
+                        text=f"User provided the following instructions:\n\n{user_input}\n\nPlease execute the instructions above. Invoke session_checkpoint again when done.",
                     ))
                 
                 return result
@@ -338,7 +323,7 @@ async def main():
                 return [
                     TextContent(
                         type="text",
-                        text=f"与 VS Code 扩展通信出错: {str(e)}\n\n请确保 Ask Continue 扩展已安装并在 VS Code 中运行。",
+                        text=f"Communication error with extension: {str(e)}\n\nPlease ensure the extension is installed and running.",
                     )
                 ]
         
@@ -350,7 +335,7 @@ async def main():
         ]
     
     # 启动服务器
-    print("[MCP] Windsurf Ask Continue MCP Server 已启动", file=sys.stderr)
+    print("[SH] Session Helper MCP Server started", file=sys.stderr)
     
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())

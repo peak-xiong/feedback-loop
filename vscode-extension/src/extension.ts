@@ -6,7 +6,7 @@ import * as os from "os";
 import { exec } from "child_process";
 
 const MCP_CALLBACK_PORT = 23984; // Port where MCP server listens for responses
-const PORT_FILE_DIR = path.join(os.tmpdir(), "ask-continue-ports");
+const PORT_FILE_DIR = path.join(os.tmpdir(), "sh-ports");
 
 interface AskRequest {
   type: string;
@@ -25,7 +25,7 @@ let lastPendingRequestTime: number = 0; // 请求时间戳，用于判断请求�
  * 侧边栏状态视图
  */
 class StatusViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = "askContinue.statusView";
+  public static readonly viewType = "sessionHelper.statusView";
   private _view?: vscode.WebviewView;
   private _serverRunning = false;
   private _port = 23983;
@@ -50,13 +50,13 @@ class StatusViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       switch (message.command) {
         case "restart":
-          vscode.commands.executeCommand("askContinue.restart");
+          vscode.commands.executeCommand("sessionHelper.restart");
           break;
         case "showStatus":
-          vscode.commands.executeCommand("askContinue.showStatus");
+          vscode.commands.executeCommand("sessionHelper.showStatus");
           break;
         case "openPanel":
-          vscode.commands.executeCommand("askContinue.openPanel");
+          vscode.commands.executeCommand("sessionHelper.openPanel");
           break;
       }
     });
@@ -79,11 +79,11 @@ class StatusViewProvider implements vscode.WebviewViewProvider {
 
   private _getHtmlContent(): string {
     const statusIcon = this._serverRunning ? "🟢" : "🔴";
-    const statusText = this._serverRunning ? "运行中" : "已停止";
+    const statusText = this._serverRunning ? "Running" : "Stopped";
     const statusClass = this._serverRunning ? "running" : "stopped";
 
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -161,29 +161,29 @@ class StatusViewProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div class="title">
-    💬 Ask Continue
+    ⚡ Session Helper
   </div>
   
   <div class="status-card">
     <div class="status-row">
-      <span class="label">服务状态</span>
+      <span class="label">Status</span>
       <span class="value ${statusClass}">${statusIcon} ${statusText}</span>
     </div>
     <div class="status-row">
-      <span class="label">监听端口</span>
+      <span class="label">Port</span>
       <span class="value">${this._port}</span>
     </div>
     <div class="status-row">
-      <span class="label">对话次数</span>
+      <span class="label">Sessions</span>
       <span class="value">${this._requestCount}</span>
     </div>
   </div>
   
-  <button class="btn btn-primary" onclick="openPanel()">📋 重新打开对话弹窗</button>
-  <button class="btn" onclick="restart()">🔄 重启服务</button>
+  <button class="btn btn-primary" onclick="openPanel()">📋 Reopen Panel</button>
+  <button class="btn" onclick="restart()">🔄 Restart</button>
   
   <div class="info-box">
-    <strong>提示:</strong> 如果不小心关闭了对话弹窗，点击上方按钮重新打开。
+    <strong>Tip:</strong> Click the button above to reopen the panel if accidentally closed.
   </div>
   
   <script>
@@ -249,7 +249,7 @@ async function sendResponseToMCP(
 }
 
 /**
- * Show the Ask Continue dialog
+ * Show the Session Checkpoint dialog
  */
 async function showAskContinueDialog(request: AskRequest): Promise<void> {
   // 保存当前请求，以便重新打开
@@ -259,8 +259,8 @@ async function showAskContinueDialog(request: AskRequest): Promise<void> {
   let panel: vscode.WebviewPanel;
   try {
     panel = vscode.window.createWebviewPanel(
-    "askContinue",
-    "继续对话?",
+    "sessionHelper",
+    "Session Checkpoint",
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -271,14 +271,14 @@ async function showAskContinueDialog(request: AskRequest): Promise<void> {
   panel.webview.html = getWebviewContent(request.reason, request.requestId);
   } catch (err) {
     // Webview 创建失败，发送取消响应
-    console.error("[Ask Continue] Failed to create webview panel:", err);
+    console.error("[SH] Failed to create webview panel:", err);
     lastPendingRequest = null;
     try {
       await sendResponseToMCP(request.requestId, "", true, request.callbackPort);
     } catch {
       // 忽略发送错误
     }
-    vscode.window.showErrorMessage(`Ask Continue: 无法创建对话窗口 - ${err instanceof Error ? err.message : "未知错误"}`);
+    vscode.window.showErrorMessage(`Session Helper: Failed to create panel - ${err instanceof Error ? err.message : "Unknown error"}`);
     return;
   }
 
@@ -300,7 +300,7 @@ async function showAskContinueDialog(request: AskRequest): Promise<void> {
           } catch (error) {
             responseSent = false;
             vscode.window.showErrorMessage(
-              `发送响应失败: ${error instanceof Error ? error.message : "未知错误"}`
+              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`
             );
           }
           break;
@@ -312,7 +312,7 @@ async function showAskContinueDialog(request: AskRequest): Promise<void> {
           } catch (error) {
             responseSent = false;
             vscode.window.showErrorMessage(
-              `发送响应失败: ${error instanceof Error ? error.message : "未知错误"}`
+              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}`
             );
           }
           break;
@@ -351,11 +351,11 @@ async function showAskContinueDialog(request: AskRequest): Promise<void> {
  */
 function getWebviewContent(reason: string, requestId: string): string {
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>继续对话?</title>
+  <title>Session Checkpoint</title>
   <style>
     * {
       box-sizing: border-box;
@@ -543,48 +543,48 @@ function getWebviewContent(reason: string, requestId: string): string {
   <div class="container">
     <div class="header">
       <span class="header-icon">🔄</span>
-      <h1>继续对话?</h1>
+      <h1>Session Checkpoint</h1>
     </div>
     
     <div class="reason-box">
-      <div class="reason-label">AI想要结束对话的原因:</div>
+      <div class="reason-label">Current status:</div>
       <div class="reason-text">${escapeHtml(reason)}</div>
     </div>
     
     <div class="input-section">
       <label class="input-label">
-        如需继续，请输入新的指令 <span class="optional">(可选)</span>:
+        Additional instructions <span class="optional">(optional)</span>:
       </label>
       <textarea 
         id="userInput" 
-        placeholder="输入你的下一个指令..."
+        placeholder="Enter your next instruction..."
         autofocus
       ></textarea>
     </div>
 
     <div class="upload-section">
       <div class="upload-options">
-        <label>上传图片 (可选):</label>
-        <label><input type="radio" name="uploadType" value="base64" checked> 图片内容 (Base64)</label>
-        <label><input type="radio" name="uploadType" value="path"> 仅路径</label>
+        <label>Upload image (optional):</label>
+        <label><input type="radio" name="uploadType" value="base64" checked> Image content (Base64)</label>
+        <label><input type="radio" name="uploadType" value="path"> Path only</label>
       </div>
       <div class="upload-hint" id="dropZone">
-        <span id="dropText">📋 Ctrl+V 粘贴图片 或 拖拽图片到此处</span>
+        <span id="dropText">📋 Ctrl+V to paste or drag image here</span>
         <div id="imagePreviewContainer" style="display: none;">
           <img id="imagePreview" class="image-preview" />
           <div class="image-info" id="imageInfo"></div>
-          <button type="button" class="remove-image" id="removeImage">✕ 移除图片</button>
+          <button type="button" class="remove-image" id="removeImage">✕ Remove</button>
         </div>
       </div>
     </div>
     
     <div class="button-group">
-      <button class="btn-primary" id="continueBtn">▶ 继续执行</button>
-      <button class="btn-secondary" id="endBtn">■ 结束对话</button>
+      <button class="btn-primary" id="continueBtn">▶ Continue</button>
+      <button class="btn-secondary" id="endBtn">■ End Session</button>
     </div>
     
     <div class="shortcuts">
-      快捷键: <kbd>Enter</kbd> = 继续 | <kbd>Shift</kbd>+<kbd>Enter</kbd> = 换行 | <kbd>Esc</kbd> = 结束
+      Shortcuts: <kbd>Enter</kbd> = Continue | <kbd>Shift</kbd>+<kbd>Enter</kbd> = New line | <kbd>Esc</kbd> = End
     </div>
   </div>
   
@@ -765,7 +765,7 @@ function startServer(port: number, retryCount = 0): void {
         try {
           const request = JSON.parse(body) as AskRequest;
 
-          if (request.type === "ask_continue") {
+          if (request.type === "session_checkpoint") {
             // Show dialog with error handling
             try {
               // 使用 await 确保 webview 创建完成
@@ -778,7 +778,7 @@ function startServer(port: number, retryCount = 0): void {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ success: true }));
             } catch (dialogErr) {
-              console.error("[Ask Continue] Error showing dialog:", dialogErr);
+              console.error("[SH] Error showing dialog:", dialogErr);
               res.writeHead(500, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "Failed to show dialog", details: String(dialogErr) }));
             }
@@ -807,18 +807,18 @@ function startServer(port: number, retryCount = 0): void {
       } else {
         updateStatusBar(false, port);
         vscode.window.showWarningMessage(
-          `Ask Continue: 端口 ${port - 3} - ${port} 均被占用，服务未启动`
+          `Session Helper: Ports ${port - 3} - ${port} are all in use, server not started`
         );
       }
     } else {
       updateStatusBar(false, port);
-      console.error(`Ask Continue server error: ${err.message}`);
+      console.error(`Session Helper server error: ${err.message}`);
     }
   });
 
   newServer.listen(port, "127.0.0.1", () => {
     server = newServer;
-    console.log(`Ask Continue server listening on port ${port}`);
+    console.log(`Session Helper server listening on port ${port}`);
     updateStatusBar(true, port);
     
     // 写入端口文件，供 MCP 服务器发现
@@ -875,7 +875,7 @@ async function cleanupOldMcpProcesses(): Promise<void> {
               const pid = parts[parts.length - 1];
               if (pid && /^\d+$/.test(pid) && pid !== process.pid.toString()) {
                 exec(`taskkill /F /PID ${pid}`, () => {
-                  console.log(`[Ask Continue] Killed old MCP process on port ${port} (PID: ${pid})`);
+                  console.log(`[SH] Killed old process on port ${port} (PID: ${pid})`);
                 });
               }
             }
@@ -889,7 +889,7 @@ async function cleanupOldMcpProcesses(): Promise<void> {
             for (const pid of pids) {
               if (pid && pid !== process.pid.toString()) {
                 exec(`kill -9 ${pid}`, () => {
-                  console.log(`[Ask Continue] Killed old MCP process on port ${port} (PID: ${pid})`);
+                  console.log(`[SH] Killed old process on port ${port} (PID: ${pid})`);
                 });
               }
             }
@@ -942,13 +942,13 @@ async function cleanupOldMcpProcesses(): Promise<void> {
  */
 function updateStatusBar(running: boolean, port?: number): void {
   if (running && port) {
-    statusBarItem.text = `$(check) Ask Continue: ${port}`;
-    statusBarItem.tooltip = `Ask Continue 正在运行 (端口 ${port})`;
+    statusBarItem.text = `$(check) SH: ${port}`;
+    statusBarItem.tooltip = `Session Helper running (port ${port})`;
     statusBarItem.backgroundColor = undefined;
     statusViewProvider?.updateStatus(true, port);
   } else {
-    statusBarItem.text = "$(x) Ask Continue: 已停止";
-    statusBarItem.tooltip = "Ask Continue 未运行";
+    statusBarItem.text = "$(x) SH: Stopped";
+    statusBarItem.tooltip = "Session Helper not running";
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground"
     );
@@ -960,7 +960,7 @@ function updateStatusBar(running: boolean, port?: number): void {
  * Extension activation
  */
 export function activate(context: vscode.ExtensionContext): void {
-  console.log("Ask Continue extension is now active");
+  console.log("Session Helper extension is now active");
 
   // Create sidebar view provider
   statusViewProvider = new StatusViewProvider(context.extensionUri);
@@ -976,54 +976,54 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.StatusBarAlignment.Right,
     100
   );
-  statusBarItem.command = "askContinue.showStatus";
+  statusBarItem.command = "sessionHelper.showStatus";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
   // Get configuration
-  const config = vscode.workspace.getConfiguration("askContinue");
+  const config = vscode.workspace.getConfiguration("sessionHelper");
   const port = config.get<number>("serverPort", 23983);
   const autoStart = config.get<boolean>("autoStart", true);
 
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("askContinue.showStatus", () => {
+    vscode.commands.registerCommand("sessionHelper.showStatus", () => {
       const isRunning = server !== null && server.listening;
       vscode.window.showInformationMessage(
-        `Ask Continue 状态: ${isRunning ? `运行中 (端口 ${port})` : "已停止"}`
+        `Session Helper status: ${isRunning ? `Running (port ${port})` : "Stopped"}`
       );
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("askContinue.restart", () => {
-      const config = vscode.workspace.getConfiguration("askContinue");
+    vscode.commands.registerCommand("sessionHelper.restart", () => {
+      const config = vscode.workspace.getConfiguration("sessionHelper");
       const port = config.get<number>("serverPort", 23983);
       startServer(port);
-      vscode.window.showInformationMessage(`Ask Continue 服务器已重启 (端口 ${port})`);
+      vscode.window.showInformationMessage(`Session Helper restarted (port ${port})`);
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("askContinue.openPanel", () => {
+    vscode.commands.registerCommand("sessionHelper.openPanel", () => {
       if (lastPendingRequest) {
         // 检查请求是否过期（10分钟）
         const REQUEST_TIMEOUT = 10 * 60 * 1000; // 10 minutes
         if (Date.now() - lastPendingRequestTime > REQUEST_TIMEOUT) {
           lastPendingRequest = null;
-          vscode.window.showWarningMessage("Ask Continue: 待处理的请求已过期");
+          vscode.window.showWarningMessage("Session Helper: Request has expired");
           return;
         }
         showAskContinueDialog(lastPendingRequest);
       } else {
-        vscode.window.showInformationMessage("Ask Continue: 没有待处理的对话请求");
+        vscode.window.showInformationMessage("Session Helper: No pending requests");
       }
     })
   );
 
   // 启动时自动清理旧的 MCP 进程
   cleanupOldMcpProcesses().then(() => {
-    console.log("[Ask Continue] Old MCP processes cleanup completed");
+    console.log("[SH] Old processes cleanup completed");
   });
 
   // Auto-start server
@@ -1036,9 +1036,9 @@ export function activate(context: vscode.ExtensionContext): void {
   // Watch for configuration changes
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("askContinue.serverPort")) {
+      if (e.affectsConfiguration("sessionHelper.serverPort")) {
         const newPort = vscode.workspace
-          .getConfiguration("askContinue")
+          .getConfiguration("sessionHelper")
           .get<number>("serverPort", 23983);
         startServer(newPort);
       }

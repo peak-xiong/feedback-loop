@@ -1,4 +1,4 @@
-# Windsurf Ask Continue - 无限对话 MCP 工具
+# Session Helper - MCP 开发辅助工具
 
 > ⚠️ **仅支持 Windsurf IDE**，不支持 VS Code、Cursor 等其他编辑器。
 
@@ -54,7 +54,7 @@
 
 | 组件 | 作用 | 运行方式 |
 |------|------|----------|
-| **MCP Server** (Python) | 给 AI 提供 `ask_continue` 工具 | Windsurf 自动启动 |
+| **MCP Server** (Python) | 给 AI 提供 `session_checkpoint` 工具 | Windsurf 自动启动 |
 | **Windsurf 扩展** (VSIX) | 显示弹窗界面，接收用户输入 | 安装后自动运行 |
 
 ### 完整工作流程
@@ -62,7 +62,7 @@
 ```
 你和 AI 对话
     ↓
-AI 完成任务，调用 ask_continue 工具
+AI 完成任务，调用 session_checkpoint 工具
     ↓
 MCP Server 收到调用，通知扩展
     ↓
@@ -85,7 +85,7 @@ Windsurf 通过这个配置文件知道如何启动 MCP Server：
 ```json
 {
   "mcpServers": {
-    "ask-continue": {
+    "session-helper": {
       "command": "python",
       "args": ["F:/你的路径/mcp-server-python/server.py"]
     }
@@ -138,7 +138,7 @@ pip install -r requirements.txt
 1. 打开 Windsurf
 2. 按 `Ctrl+Shift+P` 打开命令面板
 3. 输入 `Extensions: Install from VSIX`
-4. 选择项目目录下的 `windsurf-ask-continue-1.1.0.vsix` 文件
+4. 选择项目目录下的 `session-helper-1.2.0.vsix` 文件
 
 #### 步骤 3：配置 MCP
 
@@ -147,7 +147,7 @@ pip install -r requirements.txt
 ```json
 {
   "mcpServers": {
-    "ask-continue": {
+    "session-helper": {
       "command": "python",
       "args": ["你的完整路径/mcp-server-python/server.py"]
     }
@@ -157,13 +157,13 @@ pip install -r requirements.txt
 
 **注意**：
 - 路径使用正斜杠 `/` 或双反斜杠 `\\`
-- 路径必须是绝对路径，例如 `F:/Projects/Windsurf_Ask_Continue/mcp-server-python/server.py`
+- 路径必须是绝对路径，例如 `F:/Projects/session-helper/mcp-server-python/server.py`
 
 #### 步骤 4：配置全局规则
 
 复制 `rules/example-windsurfrules.txt` 的内容到 `C:\Users\你的用户名\.windsurfrules`
 
-这个规则文件告诉 AI 在完成任务后必须调用 `ask_continue` 工具。
+这个规则文件告诉 AI 在完成任务后必须调用 `session_checkpoint` 工具。
 
 #### 步骤 5：重启 Windsurf
 
@@ -174,7 +174,7 @@ pip install -r requirements.txt
 ## ✅ 验证安装成功
 
 1. 打开 Windsurf
-2. 查看右下角状态栏，应该显示 `Ask Continue: 23983`（数字可能不同）
+2. 查看右下角状态栏，应该显示 `Session Helper: 23983`（数字可能不同）
 3. 和 AI 对话，让它做一个简单任务
 4. 任务完成后应该自动弹出"继续对话？"窗口
 
@@ -193,7 +193,7 @@ pip install -r requirements.txt
 ├── vscode-extension/        # Windsurf 扩展源码（TypeScript）
 ├── rules/                   # 规则模板
 │   └── example-windsurfrules.txt
-└── windsurf-ask-continue-1.1.0.vsix  # 打包好的扩展
+└── session-helper-1.2.0.vsix  # 打包好的扩展
 ```
 
 ---
@@ -202,9 +202,9 @@ pip install -r requirements.txt
 
 | 操作 | 方法 |
 |------|------|
-| **重新打开弹窗** | `Ctrl+Shift+P` → `Ask Continue: Open Panel` |
-| 查看状态 | `Ctrl+Shift+P` → `Ask Continue: Show Status` |
-| 重启扩展服务 | `Ctrl+Shift+P` → `Ask Continue: Restart Server` |
+| **重新打开弹窗** | `Ctrl+Shift+P` → `Session Helper: Open Panel` |
+| 查看状态 | `Ctrl+Shift+P` → `Session Helper: Show Status` |
+| 重启扩展服务 | `Ctrl+Shift+P` → `Session Helper: Restart` |
 
 ---
 
@@ -213,10 +213,10 @@ pip install -r requirements.txt
 ### 问题：弹窗不出现
 
 **检查步骤**：
-1. 状态栏是否显示 `Ask Continue: 23983`？
+1. 状态栏是否显示 `Session Helper: 23983`？
    - 如果显示 → 扩展正常，问题在 MCP
    - 如果不显示 → 扩展没装好，重新安装 VSIX
-2. AI 是否调用了 `ask_continue` 工具？
+2. AI 是否调用了 `session_checkpoint` 工具？
    - 检查 `.windsurfrules` 是否存在且内容正确
 
 ### 问题：MCP 工具不可用 / AI 说没有这个工具
@@ -230,11 +230,11 @@ pip install -r requirements.txt
 
 ### 问题：不小心关了弹窗
 
-按 `Ctrl+Shift+P` → 输入 `Ask Continue: Open Panel` → 回车
+按 `Ctrl+Shift+P` → 输入 `Session Helper: Open Panel` → 回车
 
 ### 问题：端口冲突
 
-在 Windsurf 设置中搜索 `askContinue.serverPort`，改成其他端口（如 23984）
+在 Windsurf 设置中搜索 `sessionHelper.serverPort`，改成其他端口（如 23984）
 
 ### 问题：移动了项目文件夹后不工作
 
