@@ -3,6 +3,7 @@
   "displayName": "Session Helper",
   "description": "Development session management utilities",
   "version": "1.2.0",
+  "license": "MIT",
   "publisher": "peak-xiong",
   "author": {
     "name": "Peak Xiong",
