@@ -12,18 +12,11 @@
 
 ## 🚀 安装
 
-### Windows
-
-```cmd
-install.bat
-```
-
-### macOS / Linux
-
 ```bash
-chmod +x install.sh
-./install.sh
+python3 install.py
 ```
+
+> Windows 用户也可双击运行 `install.bat`
 
 ### 规则文件位置
 
@@ -34,37 +27,40 @@ chmod +x install.sh
 
 ---
 
+## 🗑️ 卸载
+
+```bash
+python3 uninstall.py
+```
+
+---
+
 ## 📁 项目结构
 
 ```
-├── install.bat / install.sh   # 安装脚本
-├── uninstall.bat / uninstall.sh
+├── install.py / uninstall.py  # 跨平台安装脚本
 ├── server/                    # MCP 服务器 (Python)
-│   ├── server.py
-│   ├── setup.py
-│   └── requirements.txt
 ├── extension/                 # VS Code 扩展 (TypeScript)
 ├── rules/                     # 规则模板
-└── scripts/                   # 工具脚本
-    └── rename.py              # 快速重命名工具
+└── scripts/rename.py          # 快速重命名工具
 ```
 
 ---
 
 ## 🔄 快速重命名（突破屏蔽）
 
-当名称被屏蔽时，修改 `scripts/rename.py` 中的 `NAME` 变量：
-
-```python
-NAME = "dev-helper"  # 改成新名称
-```
-
-然后运行：
-
 ```bash
+# 1. 编辑 scripts/rename.py，修改 NAME
+NAME = "dev-helper"  # 改成新名称
+
+# 2. 运行脚本
 python3 scripts/rename.py
+
+# 3. 重新编译打包
 cd extension && npm run compile && npm run package
-./install.sh  # 或 install.bat
+
+# 4. 重新安装
+python3 install.py
 ```
 
 ---

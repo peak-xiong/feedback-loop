@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""
+Session Helper - 跨平台安装脚本
+自动检测操作系统并执行相应安装流程
+"""
+
+import os
+import sys
+import shutil
+import subprocess
+from pathlib import Path
+
+# =============================================================================
+# 平台检测
+# =============================================================================
+
+IS_WINDOWS = sys.platform == "win32"
+IS_MACOS = sys.platform == "darwin"
+HOME = Path.home()
+
+
+def print_header():
+    print("=" * 50)
+    print("   Session Helper - MCP 工具")
+    print(f"   平台: {'Windows' if IS_WINDOWS else 'macOS/Linux'}")
+    print("=" * 50)
+    print()
+
+
+def get_script_dir() -> Path:
+    return Path(__file__).parent.resolve()
+
+
+# =============================================================================
+# 安装步骤
+# =============================================================================
+
+def check_python():
+    """检查 Python 环境"""
+    print("[1/5] 检查 Python 环境...")
+    version = sys.version_info
+    if version.major < 3 or (version.major == 3 and version.minor < 10):
+        print(f"[错误] Python 版本过低: {sys.version}")
+        print("请安装 Python 3.10+")
+        return False
+    print(f"[OK] Python {version.major}.{version.minor}.{version.micro}")
+    return True
+
+
+def install_dependencies():
+    """安装 Python 依赖"""
+    print()
+    print("[2/5] 安装 MCP Server 依赖...")
+    script_dir = get_script_dir()
+    requirements = script_dir / "server" / "requirements.txt"
+    
+    if not requirements.exists():
+        print(f"[错误] 找不到 requirements.txt: {requirements}")
+        return False
+    
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "-r", str(requirements), "-q"],
+            check=True
+        )
+        print("[OK] 依赖安装完成")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"[错误] 依赖安装失败: {e}")
+        return False
+
+
+def configure_mcp():
+    """配置 MCP"""
+    print()
+    print("[3/5] 配置 MCP...")
+    script_dir = get_script_dir()
+    setup_script = script_dir / "server" / "setup.py"
+    
+    if not setup_script.exists():
+        print(f"[错误] 找不到 setup.py: {setup_script}")
+        return False
+    
+    try:
+        subprocess.run([sys.executable, str(setup_script)], check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"[错误] MCP 配置失败: {e}")
+        return False
+
+
+def prompt_install_extension():
+    """提示安装扩展"""
+    print()
+    print("[4/5] 安装 Windsurf 扩展...")
+    script_dir = get_script_dir()
+    vsix = script_dir / "extension" / "session-helper-1.2.0.vsix"
+    
+    if not vsix.exists():
+        print(f"[警告] VSIX 文件不存在: {vsix}")
+        print("       请先编译: cd extension && npm run compile && npm run package")
+    else:
+        print("[提示] 请手动安装扩展:")
+        print(f"       1. {'Ctrl' if IS_WINDOWS else 'Cmd'}+Shift+P")
+        print("       2. 输入: Extensions: Install from VSIX")
+        print(f"       3. 选择: {vsix}")
+        
+        if IS_WINDOWS:
+            # Windows: 打开文件管理器并选中文件
+            subprocess.run(["explorer", "/select,", str(vsix)], shell=True)
+
+
+def configure_rules():
+    """配置全局规则"""
+    print()
+    print("[5/5] 配置全局规则...")
+    script_dir = get_script_dir()
+    rules_src = script_dir / "rules" / "example-windsurfrules.txt"
+    
+    if not rules_src.exists():
+        print(f"[警告] 规则文件不存在: {rules_src}")
+        return
+    
+    rules_content = rules_src.read_text(encoding="utf-8")
+    
+    # 规则文件目标位置
+    targets = []
+    
+    if IS_WINDOWS:
+        targets.append(HOME / ".windsurfrules")
+    else:
+        targets.append(HOME / ".windsurfrules")
+        # macOS/Linux 额外位置
+        codeium_rules = HOME / ".codeium" / "windsurf" / "memories" / "global_rules.md"
+        if codeium_rules.parent.exists():
+            targets.append(codeium_rules)
+    
+    for target in targets:
+        try:
+            if target.exists():
+                # 备份
+                backup = target.with_suffix(target.suffix + ".backup")
+                shutil.copy2(target, backup)
+                print(f"[备份] {backup}")
+                
+                # 对于 global_rules.md，追加内容
+                if target.name == "global_rules.md":
+                    with open(target, "a", encoding="utf-8") as f:
+                        f.write("\n\n")
+                        f.write(rules_content)
+                    print(f"[OK] 规则已追加: {target}")
+                    continue
+            
+            target.write_text(rules_content, encoding="utf-8")
+            print(f"[OK] 规则已写入: {target}")
+        except Exception as e:
+            print(f"[警告] 无法写入 {target}: {e}")
+
+
+def print_success():
+    print()
+    print("=" * 50)
+    print("   安装完成！")
+    print("=" * 50)
+    print()
+    print("下一步:")
+    print("  [1] 重启 Windsurf")
+    print("  [2] 开始对话，AI 完成任务后会自动弹窗")
+    print()
+
+
+def main():
+    print_header()
+    
+    if not check_python():
+        input("按 Enter 退出...")
+        sys.exit(1)
+    
+    if not install_dependencies():
+        input("按 Enter 退出...")
+        sys.exit(1)
+    
+    if not configure_mcp():
+        input("按 Enter 退出...")
+        sys.exit(1)
+    
+    prompt_install_extension()
+    configure_rules()
+    print_success()
+    
+    if IS_WINDOWS:
+        input("按 Enter 退出...")
+
+
+if __name__ == "__main__":
+    main()
