@@ -575,6 +575,10 @@ function getWebviewContent(reason: string, requestId: string, options: string[] 
       color: var(--vscode-button-foreground, #ffffff);
       border-color: var(--vscode-button-background, #0e639c);
     }
+    .option-btn:active {
+      transform: translateY(1px);
+      background: var(--vscode-button-hoverBackground, #1177bb);
+    }
   </style>
 </head>
 <body>
@@ -629,7 +633,9 @@ function getWebviewContent(reason: string, requestId: string, options: string[] 
   </div>
   
   <script>
+    console.log('[TS] Script starting...');
     const vscode = acquireVsCodeApi();
+    console.log('[TS] vscode API acquired');
     const textarea = document.getElementById('userInput');
     const continueBtn = document.getElementById('continueBtn');
     const endBtn = document.getElementById('endBtn');
@@ -733,10 +739,23 @@ function getWebviewContent(reason: string, requestId: string, options: string[] 
     });
     
     // Handle predefined option buttons
-    document.querySelectorAll('.option-btn').forEach(btn => {
+    console.log('[TS] Found option buttons:', document.querySelectorAll('.option-btn').length);
+    document.querySelectorAll('.option-btn').forEach((btn, idx) => {
+      console.log('[TS] Binding click to option button', idx, btn.textContent);
       btn.addEventListener('click', (e) => {
-        const option = (e.target as HTMLElement).getAttribute('data-option') || '';
+        console.log('[TS] Option button clicked!');
+        // Use currentTarget to ensure we get the button element, not a child
+        const target = e.currentTarget;
+        const option = target.getAttribute('data-option') || '';
+        console.log('[TS] Option value:', option);
+        
+        // Visual feedback
+        target.style.opacity = '0.5';
+        target.textContent = 'Sending...';
+        
+        console.log('[TS] Sending postMessage for option...');
         vscode.postMessage({ command: 'continue', text: option, hasImage: false });
+        console.log('[TS] postMessage sent!');
       });
     });
     
@@ -745,7 +764,13 @@ function getWebviewContent(reason: string, requestId: string, options: string[] 
     endBtn.addEventListener('click', submitEnd);
     
     function submitContinue() {
+      console.log('[TS] Continue button clicked!');
+      // Visual feedback immediately
+      continueBtn.textContent = 'Sending...';
+      continueBtn.disabled = true;
+      
       let text = textarea.value.trim();
+      console.log('[TS] Text value:', text);
       
       // If there's an image, append it to the message
       if (currentImageBase64) {
@@ -755,7 +780,9 @@ function getWebviewContent(reason: string, requestId: string, options: string[] 
         }
       }
       
+      console.log('[TS] Sending postMessage for continue...');
       vscode.postMessage({ command: 'continue', text: text || '继续', hasImage: !!currentImageBase64 });
+      console.log('[TS] postMessage sent!');
     }
     
     function submitEnd() {
@@ -988,13 +1015,13 @@ async function cleanupOldMcpProcesses(): Promise<void> {
  */
 function updateStatusBar(running: boolean, port?: number): void {
   if (running && port) {
-    statusBarItem.text = `$(check) --: ${port}`;
-    statusBarItem.tooltip = `Session Helper running (port ${port})`;
+    statusBarItem.text = `$(check) TS: ${port}`;
+    statusBarItem.tooltip = `Tool Sync running (port ${port})`;
     statusBarItem.backgroundColor = undefined;
     statusViewProvider?.updateStatus(true, port);
   } else {
-    statusBarItem.text = "$(x) --: Stopped";
-    statusBarItem.tooltip = "Session Helper not running";
+    statusBarItem.text = "$(x) TS: Stopped";
+    statusBarItem.tooltip = "Tool Sync not running";
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground"
     );
