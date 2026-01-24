@@ -133,24 +133,96 @@ def configure_mcp():
         return False
 
 
-def prompt_install_extension():
-    """提示安装扩展"""
+def install_extension():
+    """自动安装扩展（先卸载旧版本）"""
     print()
     print("[5/6] 安装 Windsurf 扩展...")
     root = get_project_root()
-    vsix = root / "extension" / "session-helper-1.2.0.vsix"
+    vsix = root / "extension" / "tool-sync-1.3.0.vsix"
     
     if not vsix.exists():
         print(f"[警告] VSIX 文件不存在: {vsix}")
         print("       请先编译: cd extension && npm run compile && npm run package")
+        return False
+    
+    # 获取 CLI 路径
+    if IS_WINDOWS:
+        cli_paths = ["windsurf", "code"]
     else:
-        print("[提示] 请手动安装扩展:")
-        print(f"       1. {'Ctrl' if IS_WINDOWS else 'Cmd'}+Shift+P")
-        print("       2. 输入: Extensions: Install from VSIX")
-        print(f"       3. 选择: {vsix}")
-        
-        if IS_WINDOWS:
-            subprocess.run(["explorer", "/select,", str(vsix)], shell=True)
+        cli_paths = [
+            "/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf",
+            "code",
+            "windsurf",
+        ]
+    
+    # 找到可用的 CLI
+    cli = None
+    for path in cli_paths:
+        try:
+            result = subprocess.run([path, "--version"], capture_output=True, timeout=5)
+            if result.returncode == 0:
+                cli = path
+                break
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+    
+    if not cli:
+        print("[警告] 未找到 Windsurf/VS Code CLI")
+        print(f"       请手动安装: {vsix}")
+        return False
+    
+    # 卸载旧版本扩展
+    old_extensions = [
+        "peak-xiong.auto-rush",
+        "peak-xiong.dev-pause", 
+        "peak-xiong.session-helper",
+        "peak-xiong.ask-continue",
+    ]
+    for ext in old_extensions:
+        try:
+            result = subprocess.run(
+                [cli, "--uninstall-extension", ext, "--force"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                print(f"[清理] 已卸载旧扩展: {ext}")
+        except Exception:
+            pass
+    
+    # 清理旧端口目录
+    import tempfile
+    temp_dir = tempfile.gettempdir()
+    old_port_dirs = ["---ports", "ask-continue-ports", "dp-ports", "sh-ports"]
+    for dir_name in old_port_dirs:
+        dir_path = Path(temp_dir) / dir_name
+        if dir_path.exists():
+            try:
+                shutil.rmtree(dir_path)
+                print(f"[清理] 已删除旧端口目录: {dir_name}")
+            except Exception:
+                pass
+    
+    # 安装新扩展
+    try:
+        result = subprocess.run(
+            [cli, "--install-extension", str(vsix), "--force"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            print("[OK] 扩展安装成功")
+            return True
+    except Exception as e:
+        print(f"[错误] 安装失败: {e}")
+    
+    print("[警告] 自动安装失败，请手动安装:")
+    print(f"       1. {'Ctrl' if IS_WINDOWS else 'Cmd'}+Shift+P")
+    print("       2. 输入: Extensions: Install from VSIX")
+    print(f"       3. 选择: {vsix}")
+    return False
 
 
 def configure_rules():
@@ -183,14 +255,8 @@ def configure_rules():
                 backup = target.with_suffix(target.suffix + ".backup")
                 shutil.copy2(target, backup)
                 print(f"[备份] {backup}")
-                
-                if target.name == "global_rules.md":
-                    with open(target, "a", encoding="utf-8") as f:
-                        f.write("\n\n")
-                        f.write(rules_content)
-                    print(f"[OK] 规则已追加: {target}")
-                    continue
             
+            # 统一使用覆盖模式写入
             target.write_text(rules_content, encoding="utf-8")
             print(f"[OK] 规则已写入: {target}")
         except Exception as e:
@@ -230,7 +296,7 @@ def main():
         input("按 Enter 退出...")
         sys.exit(1)
     
-    prompt_install_extension()
+    install_extension()
     configure_rules()
     print_success()
     

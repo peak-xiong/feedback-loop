@@ -27,7 +27,7 @@ from mcp.types import Tool, TextContent, ImageContent
 
 DEFAULT_EXT_PORT = 23983      # Default port for VS Code extension
 CALLBACK_PORT_START = 23984   # Starting port for callback server
-PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "sh-ports")
+PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "ts-ports")
 
 # Global state
 callback_port = CALLBACK_PORT_START
@@ -89,7 +89,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
             else:
                 event_loop.call_soon_threadsafe(future.set_result, user_input)
 
-            print(f"[SH] Response received: {req_id}", file=sys.stderr)
+            print(f"[--] Response received: {req_id}", file=sys.stderr)
             self._send_json(200, {"success": True})
 
         except Exception as e:
@@ -108,14 +108,14 @@ def run_callback_server() -> None:
         try:
             server = HTTPServer(("127.0.0.1", port), CallbackHandler)
             callback_port = port
-            print(f"[SH] Callback server on port {port}", file=sys.stderr)
+            print(f"[--] Callback server on port {port}", file=sys.stderr)
             callback_ready.set()
             server.serve_forever()
             return
         except OSError:
             continue
     
-    print("[SH] Failed to start callback server", file=sys.stderr)
+    print("[--] Failed to start callback server", file=sys.stderr)
     callback_ready.set()
 
 
@@ -147,8 +147,10 @@ def discover_ext_ports() -> list[int]:
 # User Input Request
 # =============================================================================
 
-async def request_input(reason: str) -> str:
+async def request_input(reason: str, options: list = None) -> str:
     """Send request to extension and wait for user input."""
+    if options is None:
+        options = []
     req_id = f"req_{uuid.uuid4().hex[:12]}"
     
     loop = asyncio.get_event_loop()
@@ -156,7 +158,7 @@ async def request_input(reason: str) -> str:
     pending_requests[req_id] = future
 
     ports = discover_ext_ports()
-    print(f"[SH] Extension ports: {ports}", file=sys.stderr)
+    print(f"[--] Extension ports: {ports}", file=sys.stderr)
 
     last_error = None
     connected = False
@@ -167,9 +169,10 @@ async def request_input(reason: str) -> str:
                 resp = await client.post(
                     f"http://127.0.0.1:{port}/ask",
                     json={
-                        "type": "session_checkpoint",
+                        "type": "sync",
                         "requestId": req_id,
                         "reason": reason,
+                        "options": options,
                         "callbackPort": callback_port,
                     },
                     timeout=5.0,
@@ -177,7 +180,7 @@ async def request_input(reason: str) -> str:
                 
                 if resp.status_code == 200 and resp.json().get("success"):
                     connected = True
-                    print(f"[SH] Connected to port {port}", file=sys.stderr)
+                    print(f"[--] Connected to port {port}", file=sys.stderr)
                     break
                 elif resp.status_code == 500:
                     last_error = resp.json().get("error", "Unknown error")
@@ -193,7 +196,7 @@ async def request_input(reason: str) -> str:
         pending_requests.pop(req_id, None)
         raise Exception(f"Extension connection failed: {last_error or 'No ports available'}")
 
-    print(f"[SH] Waiting for input ({req_id})...", file=sys.stderr)
+    print(f"[--] Waiting for input ({req_id})...", file=sys.stderr)
     return await future
 
 
@@ -239,12 +242,12 @@ def parse_user_response(user_input: str) -> list:
         
         result.append(TextContent(
             type="text",
-            text="\n\nExecute the instructions. Call session_checkpoint when done.",
+            text="\n\nExecute the instructions. Call sync when done.",
         ))
     else:
         result.append(TextContent(
             type="text",
-            text=f"User instructions:\n\n{user_input}\n\nExecute and call session_checkpoint when done.",
+            text=f"User instructions:\n\n{user_input}\n\nExecute and call sync when done.",
         ))
 
     return result
@@ -258,36 +261,41 @@ async def main() -> None:
     """Initialize and run MCP server."""
     global event_loop
     
-    print("[SH] Initializing Session Helper MCP Server...", file=sys.stderr)
+    print("[--] Initializing Session Helper MCP Server...", file=sys.stderr)
     event_loop = asyncio.get_running_loop()
 
     # Start callback server in background thread
     Thread(target=run_callback_server, daemon=True).start()
     
     if not callback_ready.wait(timeout=5.0):
-        print("[SH] Warning: Callback server timeout", file=sys.stderr)
+        print("[--] Warning: Callback server timeout", file=sys.stderr)
     
-    print(f"[SH] Callback port: {callback_port}", file=sys.stderr)
+    print(f"[--] Callback port: {callback_port}", file=sys.stderr)
 
     # Create MCP server
-    server = Server("session-helper")
+    server = Server("tool-sync")
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         return [
             Tool(
-                name="session_checkpoint",
+                name="sync",
                 description=(
-                    "Create a checkpoint in the development session.\n"
-                    "Pauses for user review and additional input.\n"
-                    "Use after completing tasks or when guidance is needed."
+                    "Sync point for workflow coordination.\n"
+                    "Waits for external input before continuing.\n"
+                    "Call when ready for next step."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "reason": {
                             "type": "string",
-                            "description": "Brief checkpoint status description",
+                            "description": "Current status note",
+                        },
+                        "options": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Predefined response options for quick selection",
                         },
                     },
                     "required": ["reason"],
@@ -297,14 +305,15 @@ async def main() -> None:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list:
-        if name != "session_checkpoint":
+        if name != "sync":
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
         reason = arguments.get("reason", "Task completed")
+        options = arguments.get("options", [])
         
         try:
-            print(f"[SH] Checkpoint: {reason}", file=sys.stderr)
-            user_input = await request_input(reason)
+            print(f"[--] Sync: {reason}", file=sys.stderr)
+            user_input = await request_input(reason, options)
             return parse_user_response(user_input)
         except Exception as e:
             return [TextContent(
@@ -312,7 +321,7 @@ async def main() -> None:
                 text=f"Extension error: {e}\n\nEnsure extension is installed and running.",
             )]
 
-    print("[SH] Server started", file=sys.stderr)
+    print("[--] Server started", file=sys.stderr)
     
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())

@@ -1,8 +1,8 @@
 {
-  "name": "session-helper",
-  "displayName": "Session Helper",
+  "name": "tool-sync",
+  "displayName": "Tool Sync",
   "description": "Development session management utilities",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "license": "MIT",
   "publisher": "peak-xiong",
   "author": {
@@ -34,17 +34,17 @@
     "commands": [
       {
         "command": "sessionHelper.showStatus",
-        "title": "Session Helper: Show Status",
+        "title": "Tool Sync: Show Status",
         "icon": "$(info)"
       },
       {
         "command": "sessionHelper.restart",
-        "title": "Session Helper: Restart",
+        "title": "Tool Sync: Restart",
         "icon": "$(refresh)"
       },
       {
         "command": "sessionHelper.openPanel",
-        "title": "Session Helper: Open Panel",
+        "title": "Tool Sync: Open Panel",
         "icon": "$(comment-discussion)"
       }
     ],
@@ -52,7 +52,7 @@
       "activitybar": [
         {
           "id": "sessionHelper",
-          "title": "Session Helper",
+          "title": "Tool Sync",
           "icon": "$(comment-discussion)"
         }
       ]
@@ -68,7 +68,7 @@
       ]
     },
     "configuration": {
-      "title": "Session Helper",
+      "title": "Tool Sync",
       "properties": {
         "sessionHelper.serverPort": {
           "type": "number",

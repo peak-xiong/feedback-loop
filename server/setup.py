@@ -103,11 +103,11 @@ def install_mcp_config():
     # 加载现有配置
     config = load_existing_config(config_path)
     
-    if "session-helper" in config["mcpServers"]:
-        print("[信息] 检测到已有 session-helper 配置，将更新")
+    if "tool-sync" in config["mcpServers"]:
+        print("[信息] 检测到已有 tool-sync 配置，将更新")
     
     # 添加/更新配置（使用虚拟环境 Python）
-    config["mcpServers"]["session-helper"] = {
+    config["mcpServers"]["tool-sync"] = {
         "command": venv_python,
         "args": [server_path]
     }
@@ -136,11 +136,11 @@ def uninstall_mcp_config():
     backup_config(config_path)
     config = load_existing_config(config_path)
     
-    if "session-helper" in config["mcpServers"]:
-        del config["mcpServers"]["session-helper"]
-        print("[OK] 已移除 session-helper 配置")
+    if "tool-sync" in config["mcpServers"]:
+        del config["mcpServers"]["tool-sync"]
+        print("[OK] 已移除 tool-sync 配置")
     else:
-        print("[信息] session-helper 配置不存在")
+        print("[信息] tool-sync 配置不存在")
     
     try:
         with open(config_path, "w", encoding="utf-8") as f:

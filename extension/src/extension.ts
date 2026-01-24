@@ -6,12 +6,13 @@ import * as os from "os";
 import { exec } from "child_process";
 
 const MCP_CALLBACK_PORT = 23984; // Port where MCP server listens for responses
-const PORT_FILE_DIR = path.join(os.tmpdir(), "sh-ports");
+const PORT_FILE_DIR = path.join(os.tmpdir(), "ts-ports");
 
 interface AskRequest {
   type: string;
   requestId: string;
   reason: string;
+  options?: string[];  // 预定义选项
   callbackPort?: number;  // MCP 服务器的回调端口
 }
 
@@ -240,7 +241,7 @@ async function sendResponseToMCP(
     );
 
     req.on("error", (e) => {
-      reject(new Error(`Failed to send response to MCP: ${e.message}`));
+      reject(new Error(`Failed to send response to --: ${e.message}`));
     });
 
     req.write(postData);
@@ -268,10 +269,10 @@ async function showSessionCheckpointDialog(request: AskRequest): Promise<void> {
     }
   );
 
-  panel.webview.html = getWebviewContent(request.reason, request.requestId);
+  panel.webview.html = getWebviewContent(request.reason, request.requestId, request.options || []);
   } catch (err) {
     // Webview 创建失败，发送取消响应
-    console.error("[SH] Failed to create webview panel:", err);
+    console.error("[--] Failed to create webview panel:", err);
     lastPendingRequest = null;
     try {
       await sendResponseToMCP(request.requestId, "", true, request.callbackPort);
@@ -349,7 +350,16 @@ async function showSessionCheckpointDialog(request: AskRequest): Promise<void> {
 /**
  * Generate webview HTML content
  */
-function getWebviewContent(reason: string, requestId: string): string {
+function getWebviewContent(reason: string, requestId: string, options: string[] = []): string {
+  const optionsHtml = options.length > 0 ? `
+    <div class="options-section">
+      <div class="options-label">Quick options:</div>
+      <div class="options-buttons">
+        ${options.map((opt, i) => `<button class="option-btn" data-option="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`).join('')}
+      </div>
+    </div>
+  ` : '';
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -537,6 +547,34 @@ function getWebviewContent(reason: string, requestId: string): string {
     .remove-image:hover {
       background: var(--vscode-button-secondaryHoverBackground, #45494e);
     }
+    .options-section {
+      margin-bottom: 15px;
+    }
+    .options-label {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground, #888888);
+      margin-bottom: 8px;
+    }
+    .options-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .option-btn {
+      padding: 8px 16px;
+      background: var(--vscode-button-secondaryBackground, #3a3d41);
+      color: var(--vscode-button-secondaryForeground, #ffffff);
+      border: 1px solid var(--vscode-button-border, #454545);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .option-btn:hover {
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #ffffff);
+      border-color: var(--vscode-button-background, #0e639c);
+    }
   </style>
 </head>
 <body>
@@ -550,6 +588,8 @@ function getWebviewContent(reason: string, requestId: string): string {
       <div class="reason-label">Current status:</div>
       <div class="reason-text">${escapeHtml(reason)}</div>
     </div>
+    
+    ${optionsHtml}
     
     <div class="input-section">
       <label class="input-label">
@@ -692,6 +732,14 @@ function getWebviewContent(reason: string, requestId: string): string {
       dropZone.classList.remove('has-image');
     });
     
+    // Handle predefined option buttons
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const option = (e.target as HTMLElement).getAttribute('data-option') || '';
+        vscode.postMessage({ command: 'continue', text: option, hasImage: false });
+      });
+    });
+    
     // Button handlers
     continueBtn.addEventListener('click', submitContinue);
     endBtn.addEventListener('click', submitEnd);
@@ -763,7 +811,7 @@ function startServer(port: number, retryCount = 0): void {
         try {
           const request = JSON.parse(body) as AskRequest;
 
-          if (request.type === "session_checkpoint") {
+          if (request.type === "sync") {
             // Show dialog with error handling
             try {
               // 使用 await 确保 webview 创建完成
@@ -776,7 +824,7 @@ function startServer(port: number, retryCount = 0): void {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ success: true }));
             } catch (dialogErr) {
-              console.error("[SH] Error showing dialog:", dialogErr);
+              console.error("[--] Error showing dialog:", dialogErr);
               res.writeHead(500, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ error: "Failed to show dialog", details: String(dialogErr) }));
             }
@@ -873,7 +921,7 @@ async function cleanupOldMcpProcesses(): Promise<void> {
               const pid = parts[parts.length - 1];
               if (pid && /^\d+$/.test(pid) && pid !== process.pid.toString()) {
                 exec(`taskkill /F /PID ${pid}`, () => {
-                  console.log(`[SH] Killed old process on port ${port} (PID: ${pid})`);
+                  console.log(`[--] Killed old process on port ${port} (--: ${pid})`);
                 });
               }
             }
@@ -887,7 +935,7 @@ async function cleanupOldMcpProcesses(): Promise<void> {
             for (const pid of pids) {
               if (pid && pid !== process.pid.toString()) {
                 exec(`kill -9 ${pid}`, () => {
-                  console.log(`[SH] Killed old process on port ${port} (PID: ${pid})`);
+                  console.log(`[--] Killed old process on port ${port} (--: ${pid})`);
                 });
               }
             }
@@ -940,12 +988,12 @@ async function cleanupOldMcpProcesses(): Promise<void> {
  */
 function updateStatusBar(running: boolean, port?: number): void {
   if (running && port) {
-    statusBarItem.text = `$(check) SH: ${port}`;
+    statusBarItem.text = `$(check) --: ${port}`;
     statusBarItem.tooltip = `Session Helper running (port ${port})`;
     statusBarItem.backgroundColor = undefined;
     statusViewProvider?.updateStatus(true, port);
   } else {
-    statusBarItem.text = "$(x) SH: Stopped";
+    statusBarItem.text = "$(x) --: Stopped";
     statusBarItem.tooltip = "Session Helper not running";
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground"
@@ -1021,7 +1069,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 启动时自动清理旧的 MCP 进程
   cleanupOldMcpProcesses().then(() => {
-    console.log("[SH] Old processes cleanup completed");
+    console.log("[--] Old processes cleanup completed");
   });
 
   // Auto-start server
