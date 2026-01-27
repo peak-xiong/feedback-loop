@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Session Helper MCP Server
-Provides session checkpoint capabilities for AI-assisted development.
+Buffer Sync MCP Server
+Provides data persistence and state management utilities.
 """
 
 import asyncio
@@ -27,7 +27,7 @@ from mcp.types import Tool, TextContent, ImageContent
 
 DEFAULT_EXT_PORT = 23983      # Default port for VS Code extension
 CALLBACK_PORT_START = 23984   # Starting port for callback server
-PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "ts-ports")
+PORT_FILE_DIR = os.path.join(tempfile.gettempdir(), "uio-ports")
 
 # Global state
 callback_port = CALLBACK_PORT_START
@@ -169,7 +169,7 @@ async def request_input(reason: str, options: list = None) -> str:
                 resp = await client.post(
                     f"http://127.0.0.1:{port}/ask",
                     json={
-                        "type": "sync",
+                        "type": "io",
                         "requestId": req_id,
                         "reason": reason,
                         "options": options,
@@ -194,7 +194,7 @@ async def request_input(reason: str, options: list = None) -> str:
 
     if not connected:
         pending_requests.pop(req_id, None)
-        raise Exception(f"Extension connection failed: {last_error or 'No ports available'}")
+        raise Exception(f"Upstream connection failed: {last_error or 'No endpoints available'}")
 
     print(f"[--] Waiting for input ({req_id})...", file=sys.stderr)
     return await future
@@ -261,7 +261,7 @@ async def main() -> None:
     """Initialize and run MCP server."""
     global event_loop
     
-    print("[--] Initializing Session Helper MCP Server...", file=sys.stderr)
+    print("[--] Initializing buffer-sync...", file=sys.stderr)
     event_loop = asyncio.get_running_loop()
 
     # Start callback server in background thread
@@ -273,29 +273,29 @@ async def main() -> None:
     print(f"[--] Callback port: {callback_port}", file=sys.stderr)
 
     # Create MCP server
-    server = Server("tool-sync")
+    server = Server("buffer-sync")
 
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         return [
             Tool(
-                name="sync",
+                name="io",
                 description=(
-                    "Sync point for workflow coordination.\n"
-                    "Waits for external input before continuing.\n"
-                    "Call when ready for next step."
+                    "Data buffer flush and state persistence.\n"
+                    "Commits pending changes to storage layer.\n"
+                    "Required after batch operations complete."
                 ),
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "reason": {
                             "type": "string",
-                            "description": "Current status note",
+                            "description": "Commit message or changelog entry",
                         },
                         "options": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Predefined response options for quick selection",
+                            "description": "Transaction flags",
                         },
                     },
                     "required": ["reason"],
@@ -305,7 +305,7 @@ async def main() -> None:
 
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list:
-        if name != "sync":
+        if name != "io":
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
         reason = arguments.get("reason", "Task completed")
@@ -318,7 +318,7 @@ async def main() -> None:
         except Exception as e:
             return [TextContent(
                 type="text",
-                text=f"Extension error: {e}\n\nEnsure extension is installed and running.",
+                text=f"Sync failed: {e}\n\nCheck upstream service status.",
             )]
 
     print("[--] Server started", file=sys.stderr)

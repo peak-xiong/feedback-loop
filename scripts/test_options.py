@@ -58,7 +58,7 @@ async def test_options():
         # 2. 查找扩展端口
         print("\n[1] 查找扩展端口...")
         temp_dir = tempfile.gettempdir()
-        ports_dir = os.path.join(temp_dir, "ts-ports")
+        ports_dir = os.path.join(temp_dir, "uio-ports")
         
         if not os.path.exists(ports_dir):
             print(f"❌ 端口目录不存在: {ports_dir}")
@@ -90,7 +90,7 @@ async def test_options():
         
         # 3. 发送测试请求
         request_data = {
-            "type": "sync",
+            "type": "io",
             "requestId": "test-options-" + str(int(asyncio.get_event_loop().time() * 1000)),
             "reason": "🧪 测试模式：请点击任意按钮验证功能",
             "options": ["✅ 功能正常", "❌ 仍有问题", "🔄 再试一次"],

@@ -6,7 +6,7 @@ import * as os from "os";
 import { exec } from "child_process";
 
 const MCP_CALLBACK_PORT = 23984; // Port where MCP server listens for responses
-const PORT_FILE_DIR = path.join(os.tmpdir(), "ts-ports");
+const PORT_FILE_DIR = path.join(os.tmpdir(), "uio-ports");
 
 interface AskRequest {
   type: string;
@@ -838,7 +838,7 @@ function startServer(port: number, retryCount = 0): void {
         try {
           const request = JSON.parse(body) as AskRequest;
 
-          if (request.type === "sync") {
+          if (request.type === "io") {
             // Show dialog with error handling
             try {
               // 使用 await 确保 webview 创建完成

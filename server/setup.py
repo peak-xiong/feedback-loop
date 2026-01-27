@@ -103,11 +103,11 @@ def install_mcp_config():
     # 加载现有配置
     config = load_existing_config(config_path)
     
-    if "tool-sync" in config["mcpServers"]:
-        print("[信息] 检测到已有 tool-sync 配置，将更新")
+    if "util-io" in config["mcpServers"]:
+        print("[信息] 检测到已有 util-io 配置，将更新")
     
     # 添加/更新配置（使用虚拟环境 Python）
-    config["mcpServers"]["tool-sync"] = {
+    config["mcpServers"]["util-io"] = {
         "command": venv_python,
         "args": [server_path]
     }
@@ -136,11 +136,11 @@ def uninstall_mcp_config():
     backup_config(config_path)
     config = load_existing_config(config_path)
     
-    if "tool-sync" in config["mcpServers"]:
-        del config["mcpServers"]["tool-sync"]
-        print("[OK] 已移除 tool-sync 配置")
+    if "util-io" in config["mcpServers"]:
+        del config["mcpServers"]["util-io"]
+        print("[OK] 已移除 util-io 配置")
     else:
-        print("[信息] tool-sync 配置不存在")
+        print("[信息] util-io 配置不存在")
     
     try:
         with open(config_path, "w", encoding="utf-8") as f:

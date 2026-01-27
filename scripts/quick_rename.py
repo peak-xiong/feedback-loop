@@ -24,14 +24,14 @@ from pathlib import Path
 
 # 常用词汇表（看起来正常的词）
 PREFIXES = [
-    "dev", "code", "work", "task", "flow", "sync", "util", "tool",
+    "dev", "code", "work", "task", "flow", "io", "util", "tool",
     "core", "base", "smart", "quick", "fast", "auto", "pro", "lite",
     "mini", "micro", "nano", "meta", "hyper", "super", "ultra", "mega",
 ]
 
 SUFFIXES = [
     "helper", "assist", "buddy", "mate", "hub", "lab", "box", "kit",
-    "space", "zone", "dock", "port", "link", "sync", "flow", "wave",
+    "space", "zone", "dock", "port", "link", "io", "flow", "wave",
     "pulse", "spark", "glow", "dash", "rush", "jump", "leap", "step",
 ]
 
