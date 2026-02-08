@@ -29,30 +29,30 @@
 /* ═══ Design Tokens ═══ */
 :root {
   /* Colorblind-friendly palette: using blue/orange instead of green/red */
-  --md-sys-color-primary: #0072B2;
+  --md-sys-color-primary: var(--vscode-focusBorder, #0072B2);
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-surface: #f8f9fa;
-  --md-sys-color-surface-variant: #e3e8ed;
-  --md-sys-color-on-surface: #1a1c1e;
-  --md-sys-color-on-surface-variant: #42474d;
-  --md-sys-color-outline: #72787e;
-  --md-sys-color-surface-container: #eef1f4;
-  --md-sys-color-surface-container-high: #e3e6e9;
+  --md-sys-color-surface: var(--vscode-editor-background, #1e1e1e);
+  --md-sys-color-surface-variant: var(--vscode-sideBar-background, #252526);
+  --md-sys-color-on-surface: var(--vscode-foreground, #cccccc);
+  --md-sys-color-on-surface-variant: var(--vscode-descriptionForeground, #9d9d9d);
+  --md-sys-color-outline: var(--vscode-panel-border, #3c3c3c);
+  --md-sys-color-surface-container: var(--vscode-input-background, #2d2d30);
+  --md-sys-color-surface-container-high: var(--vscode-list-hoverBackground, #2a2d2e);
   --md-sys-color-error: #E69F00;
   --md-sys-color-on-error: #1a1c1e;
   --md-sys-color-success: #009E73;
   --md-sys-color-on-success: #ffffff;
 
-  /* Elevation */
+  /* Elevation - softer for dark themes */
   --md-sys-elevation-level1:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.3),
-    0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+    0px 1px 2px 0px rgba(0, 0, 0, 0.4),
+    0px 1px 3px 1px rgba(0, 0, 0, 0.2);
   --md-sys-elevation-level2:
-    0px 1px 2px 0px rgba(0, 0, 0, 0.3),
-    0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+    0px 1px 2px 0px rgba(0, 0, 0, 0.4),
+    0px 2px 6px 2px rgba(0, 0, 0, 0.2);
   --md-sys-elevation-level3:
-    0px 1px 3px 0px rgba(0, 0, 0, 0.3),
-    0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+    0px 1px 3px 0px rgba(0, 0, 0, 0.4),
+    0px 4px 8px 3px rgba(0, 0, 0, 0.2);
 
   /* Shape */
   --md-sys-shape-corner-none: 0px;
@@ -61,6 +61,19 @@
   --md-sys-shape-corner-medium: 12px;
   --md-sys-shape-corner-large: 16px;
   --md-sys-shape-corner-extra-large: 28px;
+}
+
+/* Light theme override (when VS Code is in light mode) */
+@media (prefers-color-scheme: light) {
+  :root:not([data-vscode-theme-kind="vscode-dark"]):not([data-vscode-theme-kind="vscode-high-contrast"]) {
+    --md-sys-color-surface: var(--vscode-editor-background, #f8f9fa);
+    --md-sys-color-surface-variant: var(--vscode-sideBar-background, #e3e8ed);
+    --md-sys-color-on-surface: var(--vscode-foreground, #1a1c1e);
+    --md-sys-color-on-surface-variant: var(--vscode-descriptionForeground, #42474d);
+    --md-sys-color-outline: var(--vscode-panel-border, #72787e);
+    --md-sys-color-surface-container: var(--vscode-input-background, #eef1f4);
+    --md-sys-color-surface-container-high: var(--vscode-list-hoverBackground, #e3e6e9);
+  }
 }
 
 /* ═══ Reset ═══ */

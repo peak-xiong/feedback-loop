@@ -107,7 +107,10 @@ export class StatusViewProvider implements vscode.WebviewViewProvider {
               "utf-8",
             );
             const data = JSON.parse(content);
-            this._pendingRequests.push(data);
+            // 验证必需字段
+            if (data.id) {
+              this._pendingRequests.push(data);
+            }
           } catch {
             // 忽略解析错误
           }
@@ -131,8 +134,11 @@ export class StatusViewProvider implements vscode.WebviewViewProvider {
               "utf-8",
             );
             const data = JSON.parse(content);
-            data._completed = true;
-            this._pendingRequests.push(data);
+            // 验证必需字段
+            if (data.id) {
+              data._completed = true;
+              this._pendingRequests.push(data);
+            }
           } catch {
             // 忽略解析错误
           }
@@ -210,6 +216,11 @@ export class StatusViewProvider implements vscode.WebviewViewProvider {
 
     const sessionsHtml = this._buildSessionsHtml();
 
+    // 生成 CSS URI
+    const cssUri = this._view?.webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "dist", "views", "shared", "design-system.css")
+    );
+
     try {
       let template = fs.readFileSync(this._templatePath, "utf-8");
       return template
@@ -217,7 +228,8 @@ export class StatusViewProvider implements vscode.WebviewViewProvider {
         .replace(/\{\{STATUS_TEXT\}\}/g, statusText)
         .replace(/\{\{STATUS_CLASS\}\}/g, statusClass)
         .replace(/\{\{REQUEST_COUNT\}\}/g, String(this._requestCount))
-        .replace(/\{\{SESSIONS_HTML\}\}/g, sessionsHtml);
+        .replace(/\{\{SESSIONS_HTML\}\}/g, sessionsHtml)
+        .replace(/\{\{CSS_URI\}\}/g, cssUri?.toString() || "");
     } catch {
       return this._getFallbackHtml(statusIcon, statusText);
     }

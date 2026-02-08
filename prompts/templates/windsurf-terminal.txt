@@ -26,13 +26,7 @@ trigger: always_on
 ## 调用命令
 
 ```bash
-cd /path/to/session-helper/feedback && uv run feedback \
-  -p "项目路径" \
-  -s "工作摘要" \
-  -i "会话ID" \
-  -m "模型名称" \
-  -t "对话标题" \
-  -o "继续,修改,完成"
+cd ~/Documents/Web3Projects/session-helper/feedback && uv run feedback -p "项目路径" -s "工作摘要" -m "模型名称" -t "对话标题" -o "继续,修改,完成"
 ```
 
 ### 参数说明

@@ -47,7 +47,7 @@ export async function showSessionCheckpointDialog(
       },
     );
 
-    panel.webview.html = getWebviewContent(request, extensionUri);
+    panel.webview.html = getWebviewContent(request, extensionUri, panel.webview);
   } catch (err) {
     console.error("Failed to create webview panel:", err);
     setLastPendingRequest(null);
@@ -155,7 +155,12 @@ export async function showSessionCheckpointDialog(
 function getWebviewContent(
   request: AskRequest,
   extensionUri: vscode.Uri,
+  webview: vscode.Webview,
 ): string {
+  // 生成 CSS URI
+  const cssUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, "dist", "views", "shared", "design-system.css")
+  );
   const templatePath = path.join(
     extensionUri.fsPath,
     "dist",
@@ -216,7 +221,8 @@ function getWebviewContent(
       .replace(/\{\{OPTIONS_HTML\}\}/g, optionsHtml)
       .replace(/\{\{META_INFO_HTML\}\}/g, metaInfoHtml)
       .replace(/\{\{HEADER_TITLE\}\}/g, headerTitle)
-      .replace(/\{\{HEADER_CONTEXT_HTML\}\}/g, headerContextHtml);
+      .replace(/\{\{HEADER_CONTEXT_HTML\}\}/g, headerContextHtml)
+      .replace(/\{\{CSS_URI\}\}/g, cssUri.toString());
   } catch {
     // Fallback inline template
     return `<!DOCTYPE html><html><body>
