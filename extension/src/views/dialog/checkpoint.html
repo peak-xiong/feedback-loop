@@ -201,6 +201,15 @@
       textarea::placeholder {
         color: var(--md-sys-color-on-surface-variant);
       }
+      .char-counter {
+        float: right;
+        font-size: 11px;
+        color: var(--md-sys-color-on-surface-variant);
+        font-weight: normal;
+      }
+      .char-counter.warning {
+        color: var(--md-sys-color-error);
+      }
 
       /* ── Image upload ── */
       .upload-toggle {
@@ -419,10 +428,12 @@
         <label class="input-label">
           Your response
           <span class="input-hint">(or pick an option above)</span>
+          <span id="charCounter" class="char-counter">0 / 50000</span>
         </label>
         <textarea
           id="userInput"
           placeholder="Type your instructions here..."
+          maxlength="50000"
           autofocus
         ></textarea>
       </div>
@@ -516,6 +527,21 @@
 
       // ── Focus textarea ──
       textarea.focus();
+
+      // ── Character counter ──
+      const charCounter = document.getElementById("charCounter");
+      const maxLength = 50000;
+      function updateCharCount() {
+        const len = textarea.value.length;
+        charCounter.textContent = len.toLocaleString() + " / " + maxLength.toLocaleString();
+        if (len > maxLength * 0.9) {
+          charCounter.classList.add("warning");
+        } else {
+          charCounter.classList.remove("warning");
+        }
+      }
+      textarea.addEventListener("input", updateCharCount);
+      updateCharCount();
 
       // ── Keyboard shortcut: Ctrl+Enter to send ──
       document.addEventListener("keydown", (e) => {
