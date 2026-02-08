@@ -6,8 +6,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { AskRequest } from "../../types";
 import { escapeHtml } from "../../utils";
-import { MCP_CALLBACK_PORT, REQUEST_TIMEOUT } from "../../core/config";
-import { sendResponseToMCP } from "../../server";
+import { REQUEST_TIMEOUT } from "../../core/config";
+import { submitFeedback } from "../../server";
 
 let lastPendingRequest: AskRequest | null = null;
 let lastPendingRequestTime: number = 0;
@@ -52,7 +52,7 @@ export async function showSessionCheckpointDialog(
     console.error("Failed to create webview panel:", err);
     setLastPendingRequest(null);
     try {
-      await sendResponseToMCP(request.requestId, "", true, request.callbackPort || MCP_CALLBACK_PORT);
+      await submitFeedback(request.requestId, "[cancelled]");
     } catch {
       // Ignore send errors
     }
@@ -71,7 +71,13 @@ export async function showSessionCheckpointDialog(
           try {
             responseSent = true;
             setLastPendingRequest(null);
-            await sendResponseToMCP(request.requestId, message.text, false, request.callbackPort || MCP_CALLBACK_PORT);
+            
+            await submitFeedback(request.requestId, message.text, [], {
+              model: request.model,
+              sessionId: request.sessionId,
+              title: request.title,
+              agentId: request.agentId,
+            });
             panel.dispose();
           } catch (error) {
             responseSent = false;
@@ -84,7 +90,7 @@ export async function showSessionCheckpointDialog(
         case "end":
           try {
             responseSent = true;
-            await sendResponseToMCP(request.requestId, "", false, request.callbackPort || MCP_CALLBACK_PORT);
+            await submitFeedback(request.requestId, "[end]");
             panel.dispose();
           } catch (error) {
             responseSent = false;
@@ -97,7 +103,7 @@ export async function showSessionCheckpointDialog(
         case "cancel":
           try {
             responseSent = true;
-            await sendResponseToMCP(request.requestId, "", true, request.callbackPort || MCP_CALLBACK_PORT);
+            await submitFeedback(request.requestId, "[cancelled]");
             panel.dispose();
           } catch {
             // Ignore errors on cancel
@@ -115,7 +121,7 @@ export async function showSessionCheckpointDialog(
     }
     if (responseSent) return;
     try {
-      await sendResponseToMCP(request.requestId, "", true, request.callbackPort || MCP_CALLBACK_PORT);
+      await submitFeedback(request.requestId, "[cancelled]");
     } catch {
       // Ignore errors on dispose
     }
@@ -123,7 +129,7 @@ export async function showSessionCheckpointDialog(
 }
 
 function getWebviewContent(request: AskRequest, extensionUri: vscode.Uri): string {
-  const templatePath = path.join(extensionUri.fsPath, "src", "views", "dialog", "checkpoint.html");
+  const templatePath = path.join(extensionUri.fsPath, "dist", "views", "dialog", "checkpoint.html");
   const options = request.options || [];
   
   const optionsHtml = options.length > 0 ? `
@@ -135,12 +141,35 @@ function getWebviewContent(request: AskRequest, extensionUri: vscode.Uri): strin
     </div>
   ` : '';
 
+  // 生成元信息 HTML
+  const metaParts: string[] = [];
+  if (request.model) {
+    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Model:</span><span style="color: var(--vscode-textLink-foreground, #3794ff);">${escapeHtml(request.model)}</span></span>`);
+  }
+  if (request.title) {
+    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Title:</span><span style="color: var(--vscode-charts-green, #89d185);">${escapeHtml(request.title)}</span></span>`);
+  }
+  if (request.agentId) {
+    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Agent:</span><span style="color: var(--vscode-textLink-foreground, #3794ff); word-break: break-all;">${escapeHtml(request.agentId)}</span></span>`);
+  }
+  const metaInfoHtml = metaParts.length > 0 
+    ? metaParts.join('<span style="margin: 0 8px; color: #555;">|</span>')
+    : '<span style="color: var(--vscode-descriptionForeground, #888);">No metadata provided</span>';
+
+  const headerTitle = request.title || "Session Checkpoint";
+  const headerContextHtml = request.context 
+    ? `<div class="header-context">📌 ${escapeHtml(request.context)}</div>` 
+    : '';
+
   try {
     let template = fs.readFileSync(templatePath, "utf-8");
     return template
       .replace(/\{\{REASON\}\}/g, escapeHtml(request.reason))
       .replace(/\{\{REQUEST_ID\}\}/g, escapeHtml(request.requestId))
-      .replace(/\{\{OPTIONS_HTML\}\}/g, optionsHtml);
+      .replace(/\{\{OPTIONS_HTML\}\}/g, optionsHtml)
+      .replace(/\{\{META_INFO_HTML\}\}/g, metaInfoHtml)
+      .replace(/\{\{HEADER_TITLE\}\}/g, headerTitle)
+      .replace(/\{\{HEADER_CONTEXT_HTML\}\}/g, headerContextHtml);
   } catch {
     // Fallback inline template
     return `<!DOCTYPE html><html><body>

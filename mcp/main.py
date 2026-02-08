@@ -30,7 +30,8 @@ DB_ENABLED = False
 try:
     from models import (
         init_db, save_request, save_response,
-        get_recent_sessions, get_pending_requests, get_all_agents
+        get_recent_sessions, get_pending_requests, get_all_agents,
+        delete_request
     )
     DB_ENABLED = True
     init_db()
@@ -64,6 +65,7 @@ def run_callback_server():
         CallbackHandler.get_recent_sessions = get_recent_sessions
         CallbackHandler.get_pending_requests = get_pending_requests
         CallbackHandler.get_all_agents = get_all_agents
+        CallbackHandler.delete_request = delete_request
         CallbackHandler.save_response = save_response
     
     for port in range(CALLBACK_PORT_START, CALLBACK_PORT_START + 20):
@@ -84,8 +86,11 @@ def run_callback_server():
 
 async def request_input(
     reason: str, 
-    options: list = None, 
-    is_pause: bool = False
+    options: list | None = None, 
+    is_pause: bool = False,
+    model: str | None = None,
+    agent_id: str | None = None,
+    context: str | None = None
 ) -> str:
     """Send request to extension and wait for user input."""
     callback_ready.wait(timeout=10)
@@ -99,14 +104,21 @@ async def request_input(
     if not ext_ports:
         ext_ports = [DEFAULT_EXT_PORT]
     
-    # Prepare payload
+    # Prepare payload (must match AskRequest type in extension)
     payload = {
+        "type": "io",
         "requestId": request_id,
         "reason": reason,
         "callbackPort": callback_port,
     }
     if options:
         payload["options"] = options
+    if model:
+        payload["model"] = model
+    if agent_id:
+        payload["agentId"] = agent_id
+    if context:
+        payload["context"] = context
     
     # Save to DB
     if DB_ENABLED:
@@ -121,7 +133,7 @@ async def request_input(
         for port in ext_ports:
             try:
                 resp = await client.post(
-                    f"http://127.0.0.1:{port}/notify",
+                    f"http://127.0.0.1:{port}/ask",
                     json=payload
                 )
                 if resp.status_code == 200:
@@ -152,7 +164,7 @@ async def main():
     server_thread.start()
     
     # Create MCP server
-    server = Server("io-util")
+    server = Server("dev-tools")
     
     @server.list_tools()
     async def list_tools():
@@ -165,7 +177,7 @@ async def main():
         )
         
         # Parse response for io tool (may contain images)
-        if name == "io" and results:
+        if name == "checkpoint" and results:
             first_result = results[0]
             if hasattr(first_result, 'text'):
                 return parse_user_response(first_result.text)

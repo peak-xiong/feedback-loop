@@ -1,4 +1,4 @@
-# Session Helper Extension
+# IO Util Extension
 
 VS Code/Windsurf 扩展，提供会话检查点弹窗界面。
 
@@ -7,27 +7,51 @@ VS Code/Windsurf 扩展，提供会话检查点弹窗界面。
 - 🔄 会话检查点弹窗
 - 📋 剪贴板图片支持
 - 🖱️ 拖拽上传图片
+- 📁 基于文件系统的通信机制
 
 ## 安装
 
+### 方式 1: 命令行安装
+
+```bash
+# 编译打包
+npm install && npm run release
+
+# VSCode
+code --install-extension dist/io-util.vsix --force
+
+# Windsurf
+windsurf --install-extension dist/io-util.vsix --force
+```
+
+### 方式 2: 手动安装
+
 1. `Ctrl+Shift+P` → `Extensions: Install from VSIX`
-2. 选择 `session-helper-1.2.0.vsix`
-3. 重启 IDE
+2. 选择 `dist/io-util.vsix`
+3. 重新加载窗口: `Developer: Reload Window`
 
 ## 命令
 
 | 命令 | 说明 |
 |------|------|
-| `Session Helper: Open Panel` | 打开弹窗 |
-| `Session Helper: Show Status` | 查看状态 |
-| `Session Helper: Restart` | 重启服务 |
+| `IO Util: Open Panel` | 打开弹窗 |
+| `IO Util: Show Status` | 查看状态 |
+| `IO Util: Restart` | 重启服务 |
 
 ## 配置
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `sessionHelper.serverPort` | 23983 | HTTP 服务端口 |
-| `sessionHelper.autoStart` | true | 自动启动服务 |
+| `ioUtil.autoStart` | true | 自动启动监听 |
+
+## 工作原理
+
+扩展监听 `~/.session-helper/requests/pending/` 目录，当 CLI 写入请求文件后：
+
+1. 扩展检测到新文件
+2. 弹出对话框请求用户输入
+3. 用户提交后写入响应到 `~/.session-helper/requests/completed/`
+4. 删除 pending 中的请求文件
 
 ## License
 

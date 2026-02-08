@@ -12,19 +12,23 @@ from config import PORT_FILE_DIR
 
 def discover_ext_ports() -> list[int]:
     """Discover running extension ports from port files."""
-    ports = []
+    import json
+    
+    ports: list[int] = []
     
     if not os.path.exists(PORT_FILE_DIR):
         return ports
     
     for fname in os.listdir(PORT_FILE_DIR):
-        if fname.startswith("ext-"):
+        if fname.endswith(".port"):
             try:
                 fpath = os.path.join(PORT_FILE_DIR, fname)
                 with open(fpath, "r") as f:
-                    port = int(f.read().strip())
-                    ports.append(port)
-            except (ValueError, IOError):
+                    data = json.load(f)
+                    port = data.get("port") if isinstance(data, dict) else int(data)
+                    if port is not None:
+                        ports.append(int(port))
+            except (ValueError, IOError, json.JSONDecodeError):
                 pass
     
     return ports

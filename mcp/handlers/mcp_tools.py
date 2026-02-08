@@ -13,30 +13,41 @@ def get_tool_definitions() -> list[Tool]:
     """Return list of available MCP tools."""
     return [
         Tool(
-            name="io",
+            name="checkpoint",
             description=(
-                "Send a checkpoint notification to the user. "
-                "This triggers a popup that pauses the workflow until user responds. "
-                "Returns the user's input text or button choice."
+                "Create a checkpoint that displays a message to the user and waits for response. "
+                "Returns the user's text input or selected option."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "reason": {
                         "type": "string",
-                        "description": "Message to display to the user",
+                        "description": "Message to show the user",
                     },
                     "options": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Optional button labels for quick response",
+                        "description": "Quick reply buttons",
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Model name for display",
+                    },
+                    "agentId": {
+                        "type": "string",
+                        "description": "Session ID for tracking",
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "Task context for display",
                     },
                 },
                 "required": ["reason"],
             },
         ),
         Tool(
-            name="pause",
+            name="hold",
             description=(
                 "Pause the session indefinitely until user manually resumes. "
                 "Use this when you need to wait indefinitely for user action. "
@@ -54,7 +65,7 @@ def get_tool_definitions() -> list[Tool]:
             },
         ),
         Tool(
-            name="join",
+            name="agent_start",
             description=(
                 "Create a new agent identity with a friendly name. "
                 "Call this at the start of a new task to get a unique agent ID. "
@@ -88,7 +99,7 @@ def get_tool_definitions() -> list[Tool]:
             },
         ),
         Tool(
-            name="recall",
+            name="agent_find",
             description=(
                 "Find previous agent sessions by context hint. "
                 "Use this to find and continue work from a previous session."
@@ -115,17 +126,26 @@ async def handle_tool_call(
 ) -> list[TextContent]:
     """Handle MCP tool calls."""
     
-    if name == "io":
+    if name == "checkpoint":
         reason = arguments.get("reason", "Checkpoint")
         options = arguments.get("options")
+        model = arguments.get("model")
+        agent_id = arguments.get("agentId")
+        context = arguments.get("context")
         
         try:
-            user_input = await request_input(reason, options=options)
+            user_input = await request_input(
+                reason, 
+                options=options, 
+                model=model, 
+                agent_id=agent_id, 
+                context=context
+            )
             return [TextContent(type="text", text=user_input)]
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
     
-    elif name == "pause":
+    elif name == "hold":
         reason = arguments.get("reason", "Paused")
         
         try:
@@ -141,7 +161,7 @@ async def handle_tool_call(
         except Exception as e:
             return [TextContent(type="text", text=f"Session ended: {str(e)}")]
     
-    elif name == "join":
+    elif name == "agent_start":
         if not db_enabled:
             return [TextContent(type="text", text="Error: Database not enabled")]
         
@@ -175,7 +195,7 @@ async def handle_tool_call(
         except Exception as e:
             return [TextContent(type="text", text=f"Error creating agent: {str(e)}")]
     
-    elif name == "recall":
+    elif name == "agent_find":
         if not db_enabled:
             return [TextContent(type="text", text="Error: Database not enabled")]
         

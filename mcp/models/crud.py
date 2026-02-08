@@ -127,6 +127,28 @@ def get_recent_sessions(limit: int = 20) -> list[SessionRequest]:
         return list(results)
 
 
+def delete_request(request_id: str) -> bool:
+    """Delete a request and its responses from database."""
+    with get_session() as session:
+        # 删除关联的响应
+        responses = session.exec(
+            select(SessionResponse).where(SessionResponse.request_id == request_id)
+        ).all()
+        for resp in responses:
+            session.delete(resp)
+        
+        # 删除请求
+        req = session.exec(
+            select(SessionRequest).where(SessionRequest.request_id == request_id)
+        ).first()
+        if req:
+            session.delete(req)
+            session.commit()
+            return True
+        session.commit()
+        return False
+
+
 def get_request_by_id(request_id: str) -> Optional[SessionRequest]:
     """Get request by ID."""
     with get_session() as session:

@@ -19,6 +19,7 @@ class CallbackHandler(BaseHTTPRequestHandler):
     get_recent_sessions = None
     get_pending_requests = None
     get_all_agents = None
+    delete_request = None
 
     def log_message(self, *args):
         """Suppress default logging."""
@@ -35,9 +36,9 @@ class CallbackHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests for history API."""
         if self.path == "/history":
-            if self.db_enabled and self.get_recent_sessions:
+            if self.db_enabled and CallbackHandler.get_recent_sessions:
                 try:
-                    sessions = self.get_recent_sessions(limit=20)
+                    sessions = CallbackHandler.get_recent_sessions(limit=20)
                     data = [
                         {
                             "request_id": r.request_id,
@@ -54,9 +55,9 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 self._send_json(501, {"error": "Database not enabled"})
         
         elif self.path == "/pending":
-            if self.db_enabled and self.get_pending_requests:
+            if self.db_enabled and CallbackHandler.get_pending_requests:
                 try:
-                    pending = self.get_pending_requests()
+                    pending = CallbackHandler.get_pending_requests()
                     data = [
                         {
                             "request_id": r.request_id,
@@ -73,9 +74,9 @@ class CallbackHandler(BaseHTTPRequestHandler):
                 self._send_json(501, {"error": "Database not enabled"})
         
         elif self.path == "/agents":
-            if self.db_enabled and self.get_all_agents:
+            if self.db_enabled and CallbackHandler.get_all_agents:
                 try:
-                    agents = self.get_all_agents(limit=50)
+                    agents = CallbackHandler.get_all_agents(limit=50)
                     data = [
                         {
                             "agent_id": a.agent_id,
@@ -102,9 +103,36 @@ class CallbackHandler(BaseHTTPRequestHandler):
         """Handle CORS preflight."""
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
+
+    def do_DELETE(self):
+        """Handle DELETE requests for session deletion."""
+        # 解析路径: /session/{request_id}
+        if self.path.startswith("/session/"):
+            request_id = self.path[len("/session/"):]
+            
+            if not request_id:
+                self._send_json(400, {"error": "Missing request_id"})
+                return
+            
+            if self.db_enabled and CallbackHandler.delete_request:
+                try:
+                    deleted = CallbackHandler.delete_request(request_id)
+                    if deleted:
+                        # 同时从 pending_requests 中移除
+                        if request_id in self.pending_requests:
+                            del self.pending_requests[request_id]
+                        self._send_json(200, {"status": "deleted", "request_id": request_id})
+                    else:
+                        self._send_json(404, {"error": "Request not found"})
+                except Exception as e:
+                    self._send_json(500, {"error": str(e)})
+            else:
+                self._send_json(501, {"error": "Database not enabled"})
+        else:
+            self._send_json(404, {"error": "Not found"})
 
     def do_POST(self):
         """Handle callback response from extension."""

@@ -1,6 +1,6 @@
-# Session Helper - MCP 开发辅助工具
+# Session Helper - AI 反馈交互工具
 
-> ⚠️ **仅支持 Windsurf IDE**
+> ⚠️ **支持 Windsurf / VSCode**
 
 让 AI 对话永不结束，在一次对话中无限次交互。
 
@@ -10,58 +10,70 @@
 
 ---
 
+## 📋 工作流程
+
+```
+大模型执行 CLI 命令
+    ↓
+CLI 写入请求到 ~/.session-helper/requests/pending/
+    ↓
+CLI 阻塞等待响应
+    ↓
+VSCode 扩展监听目录，弹出对话框
+    ↓
+用户输入反馈，点击提交
+    ↓
+扩展写入响应到 ~/.session-helper/requests/completed/
+    ↓
+CLI 读取响应，返回给大模型
+    ↓
+大模型继续工作
+```
+
+## 📂 关键路径
+
+| 路径 | 说明 |
+|------|------|
+| `~/.session-helper/requests/pending/` | CLI 写入请求 |
+| `~/.session-helper/requests/completed/` | 扩展写入响应 |
+| `~/.codeium/windsurf/memories/global_rules.md` | Windsurf 规则 |
+
+---
+
 ## 🚀 快速安装
 
-### 一键安装
-
 ```bash
-# macOS / Linux
-python3 scripts/install.py
+# 1. 安装 feedback CLI
+cd feedback && uv sync
 
-# Windows (双击运行)
-scripts\install.bat
-```
+# 2. 编译并安装扩展 (VSCode)
+cd extension && npm install && npm run release
+code --install-extension dist/io-util.vsix --force
 
-安装脚本会自动完成：
-1. 创建 Python 虚拟环境
-2. 安装 MCP Server 依赖
-3. 配置 Windsurf MCP
-4. 安装 VS Code 扩展
-5. 配置全局规则
+# 3. 编译并安装扩展 (Windsurf)
+windsurf --install-extension dist/io-util.vsix --force
 
-### 手动安装
-
-```bash
-# 1. 编译扩展
-cd extension
-npm install
-npm run package   # → dist/io-util.vsix
-
-# 2. 安装扩展
-windsurf --install-extension extension/dist/io-util.vsix
-
-# 3. 配置 MCP
-python3 server/setup.py
-```
-
-### 开发版本更新
-
-```bash
-cd extension
-npm run release          # patch: 1.3.0 → 1.3.1
-npm run release:minor    # minor: 1.3.0 → 1.4.0
-npm run release:major    # major: 1.3.0 → 2.0.0
-
-python3 scripts/install.py  # 重新安装
+# 4. 重新加载窗口
+# Cmd+Shift+P → "Developer: Reload Window"
 ```
 
 ---
 
-## 🗑️ 卸载
+## 🛠️ CLI 使用
 
 ```bash
-python3 scripts/uninstall.py
+cd /path/to/session-helper/feedback && uv run feedback -p "项目目录" -s "工作摘要"
 ```
+
+### 参数
+
+| 参数 | 说明 | 必选 |
+|------|------|------|
+| `-p` | 项目目录路径 | ✅ |
+| `-s` | AI 工作完成摘要 | ✅ |
+| `--session-id` | 会话 ID | 可选 |
+| `--model` | 模型名称 | 可选 |
+| `--title` | 对话标题 | 可选 |
 
 ---
 
@@ -69,51 +81,21 @@ python3 scripts/uninstall.py
 
 ```
 session-helper/
-├── server/                 # MCP 服务器 (Python)
-│   ├── main.py             # 入口点
-│   ├── config.py           # 配置常量
-│   ├── models/             # 数据库模型
-│   ├── handlers/           # 请求处理
-│   └── utils/              # 工具函数
+├── feedback/               # CLI 工具 (Python)
+│   └── src/feedback/
+│       ├── cli.py          # 命令入口
+│       └── collector.py    # 反馈收集
 ├── extension/              # VS Code 扩展 (TypeScript)
 │   ├── src/core/           # 核心逻辑
 │   ├── src/views/          # UI 组件
-│   ├── src/server/         # HTTP 服务
-│   └── dist/               # 编译输出
+│   └── src/server/         # 文件监听
 ├── prompts/                # 规则模板
-│   ├── core/               # 核心协议
-│   └── templates/          # IDE 模板
 └── scripts/                # 工具脚本
 ```
 
 ---
 
-## 🔧 MCP 工具
-
-| 工具 | 说明 |
-|------|------|
-| `io` | 发送检查点，暂停等待用户输入 |
-| `pause` | 无限期暂停，等待用户手动恢复 |
-| `join` | 创建 agent 身份，记录模型信息 |
-| `recall` | 查找之前的 agent 会话 |
-
----
-
-## 📡 API 端点
-
-| 端点 | 说明 |
-|------|------|
-| `GET /agents` | 列出所有 agent（含模型信息）|
-| `GET /history` | 最近 20 条会话 |
-| `GET /pending` | 待处理请求 |
-
-```bash
-curl http://127.0.0.1:23984/agents
-```
-
----
-
-## 🛠️ 常用命令
+## 🔧 扩展命令
 
 | 命令 | 说明 |
 |------|------|

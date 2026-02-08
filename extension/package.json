@@ -2,7 +2,7 @@
   "name": "io-util",
   "displayName": "IO Util",
   "description": "Development session management utilities",
-  "version": "1.3.0",
+  "version": "1.3.9",
   "license": "MIT",
   "publisher": "peak-xiong",
   "author": {
@@ -86,7 +86,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "clean": "rm -rf dist",
-    "compile": "npm run clean && tsc -p ./",
+    "compile": "npm run clean && tsc -p ./ && mkdir -p dist/views/dialog dist/views/sidebar && cp src/views/dialog/checkpoint.html dist/views/dialog/ && cp src/views/sidebar/sidebar.html dist/views/sidebar/",
     "watch": "tsc -watch -p ./",
     "package": "npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/io-util.vsix",
     "release": "npm version patch --no-git-tag-version && npm run package",

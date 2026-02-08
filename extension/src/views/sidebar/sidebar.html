@@ -30,9 +30,7 @@
       align-items: center;
       margin-bottom: 8px;
     }
-    .status-row:last-child {
-      margin-bottom: 0;
-    }
+    .status-row:last-child { margin-bottom: 0; }
     .label {
       color: var(--vscode-descriptionForeground);
       font-size: 12px;
@@ -41,12 +39,8 @@
       font-size: 13px;
       font-weight: 500;
     }
-    .value.running {
-      color: #4ec9b0;
-    }
-    .value.stopped {
-      color: #f14c4c;
-    }
+    .value.running { color: #4ec9b0; }
+    .value.stopped { color: #f14c4c; }
     .btn {
       width: 100%;
       padding: 8px 12px;
@@ -58,8 +52,97 @@
       cursor: pointer;
       font-size: 12px;
     }
-    .btn:hover {
-      background: var(--vscode-button-hoverBackground);
+    .btn:hover { background: var(--vscode-button-hoverBackground); }
+    .btn-secondary {
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+    }
+    .btn-secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin: 16px 0 8px 0;
+      color: var(--vscode-foreground);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .refresh-btn {
+      background: none;
+      border: none;
+      color: var(--vscode-textLink-foreground);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 6px;
+    }
+    .refresh-btn:hover { text-decoration: underline; }
+    .session-list {
+      background: var(--vscode-editor-background);
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .session-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .session-item:last-child { border-bottom: none; }
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .session-id {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--vscode-textLink-foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+    .session-status {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+    .session-status.pending {
+      background: #f0ad4e;
+      color: #000;
+    }
+    .session-status.completed {
+      background: #5cb85c;
+      color: #fff;
+    }
+    .session-reason {
+      font-size: 11px;
+      color: var(--vscode-descriptionForeground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--vscode-textLink-foreground);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 0;
+    }
+    .action-btn:hover { text-decoration: underline; }
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
     }
     .info-box {
       background: var(--vscode-textBlockQuote-background);
@@ -70,24 +153,16 @@
       line-height: 1.5;
       color: var(--vscode-descriptionForeground);
     }
-    .info-box strong {
-      color: var(--vscode-foreground);
-    }
+    .info-box strong { color: var(--vscode-foreground); }
   </style>
 </head>
 <body>
-  <div class="title">
-    ⚡ Session Helper
-  </div>
+  <div class="title">⚡ IO Util</div>
   
   <div class="status-card">
     <div class="status-row">
       <span class="label">Status</span>
       <span class="value {{STATUS_CLASS}}">{{STATUS_ICON}} {{STATUS_TEXT}}</span>
-    </div>
-    <div class="status-row">
-      <span class="label">Port</span>
-      <span class="value">{{PORT}}</span>
     </div>
     <div class="status-row">
       <span class="label">Sessions</span>
@@ -96,20 +171,44 @@
   </div>
   
   <button class="btn btn-primary" onclick="openPanel()">📋 Reopen Panel</button>
-  <button class="btn" onclick="restart()">🔄 Restart</button>
+  <button class="btn btn-secondary" onclick="restart()">🔄 Restart</button>
+  
+  <div class="section-title">
+    <span>📂 Sessions</span>
+    <button class="refresh-btn" onclick="refreshSessions()">🔄 Refresh</button>
+  </div>
+  
+  <div class="session-list" id="sessionList">
+    {{SESSIONS_HTML}}
+  </div>
   
   <div class="info-box">
-    <strong>Tip:</strong> Click the button above to reopen the panel if accidentally closed.
+    <strong>Tip:</strong> AI 执行 CLI 命令后会自动弹出对话框。点击 "Reopen Panel" 重新打开上次请求。
   </div>
   
   <script>
     const vscode = acquireVsCodeApi();
+    
     function openPanel() {
       vscode.postMessage({ command: 'openPanel' });
     }
+    
     function restart() {
       vscode.postMessage({ command: 'restart' });
+    }
+    
+    function refreshSessions() {
+      vscode.postMessage({ command: 'refreshSessions' });
+    }
+    
+    function reopenSession(requestId) {
+      vscode.postMessage({ command: 'reopenSession', requestId: requestId });
+    }
+    
+    function deleteSession(requestId) {
+      vscode.postMessage({ command: 'deleteSession', requestId: requestId });
     }
   </script>
 </body>
 </html>
+
