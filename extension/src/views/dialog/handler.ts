@@ -5,9 +5,9 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { AskRequest } from "../../types";
-import { escapeHtml } from "../../utils";
+import { escapeHtml, saveBase64Image } from "../../utils";
 import { REQUEST_TIMEOUT } from "../../core/config";
-import { submitFeedback } from "../../server";
+import { submitFeedback } from "../../polling";
 
 let lastPendingRequest: AskRequest | null = null;
 let lastPendingRequestTime: number = 0;
@@ -31,10 +31,10 @@ export function getLastPendingRequest(): AskRequest | null {
  */
 export async function showSessionCheckpointDialog(
   request: AskRequest,
-  extensionUri: vscode.Uri
+  extensionUri: vscode.Uri,
 ): Promise<void> {
   setLastPendingRequest(request);
-  
+
   let panel: vscode.WebviewPanel;
   try {
     panel = vscode.window.createWebviewPanel(
@@ -44,7 +44,7 @@ export async function showSessionCheckpointDialog(
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-      }
+      },
     );
 
     panel.webview.html = getWebviewContent(request, extensionUri);
@@ -56,7 +56,9 @@ export async function showSessionCheckpointDialog(
     } catch {
       // Ignore send errors
     }
-    vscode.window.showErrorMessage(`Session Helper: Failed to create panel - ${err instanceof Error ? err.message : "Unknown error"}`);
+    vscode.window.showErrorMessage(
+      `Session Helper: Failed to create panel - ${err instanceof Error ? err.message : "Unknown error"}`,
+    );
     return;
   }
 
@@ -65,14 +67,30 @@ export async function showSessionCheckpointDialog(
   panel.webview.onDidReceiveMessage(
     async (message) => {
       if (responseSent) return;
-      
+
       switch (message.command) {
         case "continue":
           try {
             responseSent = true;
             setLastPendingRequest(null);
-            
-            await submitFeedback(request.requestId, message.text, [], {
+
+            // 处理图片：如果有 base64 数据，保存为文件并替换
+            let finalText = message.text || "";
+            if (message.imageBase64) {
+              const imagePath = saveBase64Image(
+                request.requestId,
+                message.imageBase64,
+              );
+              if (imagePath) {
+                // 替换 base64 为文件路径
+                finalText = finalText.replace(
+                  /\[图片已附加\][\s\S]*$/,
+                  `[图片已附加]\n${imagePath}`,
+                );
+              }
+            }
+
+            await submitFeedback(request.requestId, finalText, [], {
               model: request.model,
               sessionId: request.sessionId,
               title: request.title,
@@ -81,9 +99,12 @@ export async function showSessionCheckpointDialog(
             panel.dispose();
           } catch (error) {
             responseSent = false;
-            panel.webview.postMessage({ command: 'sendFailed', error: error instanceof Error ? error.message : "Unknown error" });
+            panel.webview.postMessage({
+              command: "sendFailed",
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
             vscode.window.showErrorMessage(
-              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`
+              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
             );
           }
           break;
@@ -94,9 +115,12 @@ export async function showSessionCheckpointDialog(
             panel.dispose();
           } catch (error) {
             responseSent = false;
-            panel.webview.postMessage({ command: 'sendFailed', error: error instanceof Error ? error.message : "Unknown error" });
+            panel.webview.postMessage({
+              command: "sendFailed",
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
             vscode.window.showErrorMessage(
-              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`
+              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
             );
           }
           break;
@@ -112,7 +136,7 @@ export async function showSessionCheckpointDialog(
       }
     },
     undefined,
-    []
+    [],
   );
 
   panel.onDidDispose(async () => {
@@ -128,38 +152,61 @@ export async function showSessionCheckpointDialog(
   });
 }
 
-function getWebviewContent(request: AskRequest, extensionUri: vscode.Uri): string {
-  const templatePath = path.join(extensionUri.fsPath, "dist", "views", "dialog", "checkpoint.html");
+function getWebviewContent(
+  request: AskRequest,
+  extensionUri: vscode.Uri,
+): string {
+  const templatePath = path.join(
+    extensionUri.fsPath,
+    "dist",
+    "views",
+    "dialog",
+    "checkpoint.html",
+  );
   const options = request.options || [];
-  
-  const optionsHtml = options.length > 0 ? `
+
+  const optionsHtml =
+    options.length > 0
+      ? `
     <div class="options-section">
       <div class="options-label">Quick options:</div>
       <div class="options-buttons">
-        ${options.map((opt) => `<button class="option-btn" data-option="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`).join('')}
+        ${options.map((opt) => `<button class="option-btn" data-option="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`).join("")}
       </div>
     </div>
-  ` : '';
+  `
+      : "";
 
-  // 生成元信息 HTML
+  // 生成元信息 HTML（使用 meta-pill 样式）
   const metaParts: string[] = [];
+  // 项目名称（仅显示最后一个文件夹名）
+  if (request.context) {
+    const projectName = request.context.split(/[/\\]/).pop() || request.context;
+    metaParts.push(
+      `<span class="meta-pill"><span class="material-symbols-outlined" style="font-size:14px">folder</span> <span class="meta-val">${escapeHtml(projectName)}</span></span>`,
+    );
+  }
   if (request.model) {
-    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Model:</span><span style="color: var(--vscode-textLink-foreground, #3794ff);">${escapeHtml(request.model)}</span></span>`);
+    metaParts.push(
+      `<span class="meta-pill">Model <span class="meta-val">${escapeHtml(request.model)}</span></span>`,
+    );
   }
   if (request.title) {
-    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Title:</span><span style="color: var(--vscode-charts-green, #89d185);">${escapeHtml(request.title)}</span></span>`);
+    metaParts.push(
+      `<span class="meta-pill">Title <span class="meta-val green">${escapeHtml(request.title)}</span></span>`,
+    );
   }
   if (request.agentId) {
-    metaParts.push(`<span style="display: flex; gap: 5px;"><span class="request-id-label">Agent:</span><span style="color: var(--vscode-textLink-foreground, #3794ff); word-break: break-all;">${escapeHtml(request.agentId)}</span></span>`);
+    metaParts.push(
+      `<span class="meta-pill">Agent <span class="meta-val">${escapeHtml(request.agentId)}</span></span>`,
+    );
   }
-  const metaInfoHtml = metaParts.length > 0 
-    ? metaParts.join('<span style="margin: 0 8px; color: #555;">|</span>')
-    : '<span style="color: var(--vscode-descriptionForeground, #888);">No metadata provided</span>';
+  const metaInfoHtml = metaParts.length > 0 ? metaParts.join("") : "";
 
   const headerTitle = request.title || "Session Checkpoint";
-  const headerContextHtml = request.context 
-    ? `<div class="header-context">📌 ${escapeHtml(request.context)}</div>` 
-    : '';
+  const headerContextHtml = request.context
+    ? `<div class="header-context"><span class="material-symbols-outlined" style="font-size:14px">push_pin</span> ${escapeHtml(request.context)}</div>`
+    : "";
 
   try {
     let template = fs.readFileSync(templatePath, "utf-8");

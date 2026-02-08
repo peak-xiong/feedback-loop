@@ -5,23 +5,19 @@
 import json
 import time
 import uuid
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
-
-# 共享目录配置
-REQUESTS_DIR = Path.home() / ".session-helper" / "requests"
-PENDING_DIR = REQUESTS_DIR / "pending"
-COMPLETED_DIR = REQUESTS_DIR / "completed"
+from .config import PENDING_DIR, COMPLETED_DIR, DEFAULT_TIMEOUT
 
 
 @dataclass
 class FeedbackResult:
     """反馈结果"""
     content: str = ""
-    images: list = field(default_factory=list)
+    images: list[str] = field(default_factory=list)
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     success: bool = True
     # 元数据
@@ -29,7 +25,7 @@ class FeedbackResult:
     session_id: str = ""
     title: str = ""
     agent_id: str = ""
-    
+
     def to_dict(self) -> dict:
         return {
             "content": self.content,
@@ -45,7 +41,7 @@ class FeedbackResult:
 
 class FeedbackCollector:
     """反馈收集器 - 阻塞等待扩展响应"""
-    
+
     def __init__(
         self,
         project: str = "",
@@ -54,6 +50,7 @@ class FeedbackCollector:
         model: Optional[str] = None,
         title: Optional[str] = None,
         options: Optional[list] = None,
+        timeout: Optional[int] = None,
     ):
         self.project = project or str(Path.cwd())
         self.summary = summary
@@ -61,22 +58,23 @@ class FeedbackCollector:
         self.model = model
         self.title = title
         self.options = options or []
+        self.timeout = timeout if timeout is not None else DEFAULT_TIMEOUT
         self.request_id = str(uuid.uuid4())
         self._ensure_dirs()
-    
+
     def _ensure_dirs(self) -> None:
         """确保目录存在"""
         PENDING_DIR.mkdir(parents=True, exist_ok=True)
         COMPLETED_DIR.mkdir(parents=True, exist_ok=True)
-    
+
     def collect(self) -> FeedbackResult:
         """收集反馈（阻塞等待）"""
         self._print_header()
         self._write_request()
-        
+
         response = self._wait_for_response()
         self._cleanup()
-        
+
         if response:
             self._print_success()
             return FeedbackResult(
@@ -90,20 +88,12 @@ class FeedbackCollector:
         else:
             self._print_timeout()
             return FeedbackResult(success=False)
-    
+
     def _print_header(self) -> None:
         """打印头部信息"""
-        print("\n" + "=" * 60)
-        print("🤖 AI 请求用户反馈")
-        print("=" * 60)
-        print(f"📁 项目: {self.project}")
-        print(f"🔑 ID: {self.request_id[:8]}...")
-        if self.summary:
-            print(f"\n📋 摘要:\n{self.summary}")
-        print("\n" + "-" * 60)
-        print("💡 请在 VSCode 扩展中提交反馈")
-        print("-" * 60)
-    
+        short_id = self.request_id[:8]
+        print(f"\n🤖 等待反馈 [{short_id}] 请在 IDE 扩展中提交", flush=True)
+
     def _write_request(self) -> None:
         """写入请求文件"""
         request_file = PENDING_DIR / f"{self.request_id}.json"
@@ -121,27 +111,29 @@ class FeedbackCollector:
             json.dumps(request_data, ensure_ascii=False, indent=2),
             encoding="utf-8"
         )
-    
+
     def _wait_for_response(self) -> Optional[dict]:
         """轮询等待响应"""
         response_file = COMPLETED_DIR / f"{self.request_id}.json"
         poll_interval = 0.5
         start_time = time.time()
-        dots = 0
-        
+
         try:
             while True:
                 if response_file.exists():
+                    print()  # 换行
                     return json.loads(response_file.read_text(encoding="utf-8"))
-                
-                dots = (dots + 1) % 4
-                print(f"\r⏳ 等待反馈{'.' * dots}{' ' * (3 - dots)}", end="", flush=True)
+
+                # 超时保护
+                if self.timeout > 0 and (time.time() - start_time) > self.timeout:
+                    return None
+
                 time.sleep(poll_interval)
-                
+
         except KeyboardInterrupt:
-            print("\n⚠️ 用户中断")
+            print("\n⚠️ 已取消")
             return None
-    
+
     def _cleanup(self) -> None:
         """清理文件"""
         for file in [
@@ -152,16 +144,12 @@ class FeedbackCollector:
                 file.unlink(missing_ok=True)
             except Exception:
                 pass
-    
+
     def _print_success(self) -> None:
-        print("\n" + "=" * 60)
-        print("✅ 收到用户反馈")
-        print("=" * 60)
-    
+        print("✅ 已收到反馈")
+
     def _print_timeout(self) -> None:
-        print("\n" + "=" * 60)
-        print("⏰ 等待超时或被中断")
-        print("=" * 60)
+        print("⏰ 超时")
 
 
 def collect_feedback(
@@ -171,10 +159,11 @@ def collect_feedback(
     model: Optional[str] = None,
     title: Optional[str] = None,
     options: Optional[list] = None,
+    timeout: Optional[int] = None,
 ) -> FeedbackResult:
     """
     收集用户反馈的便捷函数
-    
+
     Args:
         project: 项目目录路径
         summary: AI 工作摘要
@@ -182,7 +171,8 @@ def collect_feedback(
         model: 模型名称
         title: 对话标题
         options: 快捷选项列表
-    
+        timeout: 超时秒数（默认 30 分钟，0 = 永不超时）
+
     Returns:
         FeedbackResult 对象
     """
@@ -193,5 +183,6 @@ def collect_feedback(
         model=model,
         title=title,
         options=options,
+        timeout=timeout,
     )
     return collector.collect()

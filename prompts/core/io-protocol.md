@@ -59,6 +59,17 @@
 ```
 用途：创建 agent 身份，便于后续恢复会话。
 
+**CLI 调用命令**（所有参数都支持简写）：
+```bash
+cd /path/to/session-helper/feedback && uv run feedback \
+  -p "项目目录" \
+  -s "工作摘要" \
+  -i "会话ID" \
+  -m "模型名称" \
+  -t "对话标题" \
+  -o "继续,修改,完成"
+```
+
 ### agent_find (查找历史)
 ```json
 {

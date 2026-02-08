@@ -1,400 +1,691 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Session Checkpoint</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-      padding: 20px;
-      color: var(--vscode-foreground, #cccccc);
-      background-color: var(--vscode-editor-background, #1e1e1e);
-      min-height: 100vh;
-    }
-    .container { max-width: 600px; margin: 0 auto; }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid var(--vscode-panel-border, #454545);
-    }
-    .header-icon { font-size: 24px; }
-    .header h1 { font-size: 18px; font-weight: 600; color: var(--vscode-foreground, #cccccc); }
-    .header-badge {
-      font-size: 10px;
-      background: var(--vscode-badge-background, #4d4d4d);
-      color: var(--vscode-badge-foreground, #ffffff);
-      padding: 2px 6px;
-      border-radius: 10px;
-      margin-left: 8px;
-    }
-    .header-context {
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground, #888888);
-      margin-top: 4px;
-      font-weight: normal;
-    }
-    .reason-box {
-      background-color: var(--vscode-textBlockQuote-background, #2d2d2d);
-      border-left: 3px solid var(--vscode-textLink-foreground, #3794ff);
-      padding: 12px 15px;
-      margin-bottom: 20px;
-      border-radius: 0 4px 4px 0;
-    }
-    .reason-label { font-size: 12px; color: var(--vscode-descriptionForeground, #888888); margin-bottom: 5px; }
-    .reason-text { font-size: 14px; line-height: 1.5; }
-    .request-id-section {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 15px;
-      padding: 8px 12px;
-      background: var(--vscode-textBlockQuote-background, #2d2d2d);
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    .request-id-label { color: var(--vscode-descriptionForeground, #888888); }
-    .request-id-value {
-      font-family: var(--vscode-editor-font-family, monospace);
-      color: var(--vscode-textLink-foreground, #3794ff);
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      font-size: 11px;
-    }
-    .copy-btn {
-      background: transparent;
-      border: 1px solid var(--vscode-button-secondaryBackground, #3a3d41);
-      color: var(--vscode-foreground, #cccccc);
-      padding: 4px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 11px;
-      transition: all 0.2s;
-    }
-    .copy-btn:hover { background: var(--vscode-button-secondaryBackground, #3a3d41); }
-    .copy-btn.copied { background: #4ec9b0; color: #000; border-color: #4ec9b0; }
-    .options-section { margin-bottom: 15px; }
-    .options-label { font-size: 12px; color: var(--vscode-descriptionForeground, #888888); margin-bottom: 8px; }
-    .options-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
-    .option-btn {
-      padding: 8px 16px;
-      background: var(--vscode-button-secondaryBackground, #3a3d41);
-      color: var(--vscode-button-secondaryForeground, #ffffff);
-      border: 1px solid var(--vscode-button-border, #454545);
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: all 0.2s;
-    }
-    .option-btn:hover {
-      background: var(--vscode-button-background, #0e639c);
-      color: var(--vscode-button-foreground, #ffffff);
-      border-color: var(--vscode-button-background, #0e639c);
-    }
-    .input-section { margin-bottom: 20px; }
-    .input-label { display: block; font-size: 13px; color: var(--vscode-foreground, #cccccc); margin-bottom: 8px; }
-    .optional { color: var(--vscode-descriptionForeground, #888888); font-weight: normal; }
-    textarea {
-      width: 100%;
-      min-height: 120px;
-      padding: 12px;
-      font-family: var(--vscode-editor-font-family, 'Consolas', monospace);
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--vscode-input-foreground, #cccccc);
-      background-color: var(--vscode-input-background, #3c3c3c);
-      border: 1px solid var(--vscode-input-border, #3c3c3c);
-      border-radius: 4px;
-      resize: vertical;
-      outline: none;
-    }
-    textarea:focus { border-color: var(--vscode-focusBorder, #007fd4); }
-    textarea::placeholder { color: var(--vscode-input-placeholderForeground, #888888); }
-    .button-group { display: flex; gap: 10px; }
-    button {
-      flex: 1;
-      padding: 10px 20px;
-      font-size: 13px;
-      font-weight: 500;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    button:hover { opacity: 0.9; }
-    button:active { opacity: 0.8; }
-    .btn-primary { background-color: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #ffffff); }
-    .btn-secondary { background-color: var(--vscode-button-secondaryBackground, #3a3d41); color: var(--vscode-button-secondaryForeground, #ffffff); }
-    .shortcuts { margin-top: 15px; font-size: 11px; color: var(--vscode-descriptionForeground, #888888); text-align: center; }
-    .upload-section { margin-bottom: 15px; }
-    .upload-options { display: flex; gap: 15px; margin-bottom: 10px; }
-    .upload-options label { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--vscode-descriptionForeground, #888888); cursor: pointer; }
-    .upload-hint {
-      font-size: 12px;
-      color: var(--vscode-descriptionForeground, #888888);
-      text-align: center;
-      padding: 15px;
-      border: 1px dashed var(--vscode-panel-border, #454545);
-      border-radius: 4px;
-      margin-bottom: 10px;
-      cursor: pointer;
-      transition: border-color 0.2s, background-color 0.2s;
-    }
-    .upload-hint:hover {
-      border-color: var(--vscode-focusBorder, #007fd4);
-      background-color: var(--vscode-list-hoverBackground, #2a2d2e);
-    }
-    .upload-hint.has-image { border-color: var(--vscode-textLink-foreground, #3794ff); padding: 10px; }
-    .image-preview { max-width: 100%; max-height: 150px; border-radius: 4px; margin-bottom: 8px; }
-    .image-info { font-size: 11px; color: var(--vscode-descriptionForeground, #888888); }
-    .remove-image {
-      background: var(--vscode-button-secondaryBackground, #3a3d41);
-      color: var(--vscode-button-secondaryForeground, #ffffff);
-      border: none;
-      border-radius: 3px;
-      padding: 4px 8px;
-      font-size: 11px;
-      cursor: pointer;
-      margin-top: 8px;
-    }
-    .remove-image:hover { background: var(--vscode-button-secondaryHoverBackground, #45494e); }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <span class="header-icon">🔄</span>
-      <div>
-        <h1>{{HEADER_TITLE}}<span class="header-badge">IO Util</span></h1>
-        {{HEADER_CONTEXT_HTML}}
-      </div>
-    </div>
-    
-    <div class="reason-box">
-      <div class="reason-label">Current status:</div>
-      <div class="reason-text">{{REASON}}</div>
-    </div>
-    
-    <div class="meta-info-section" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; padding: 8px 12px; background: var(--vscode-textBlockQuote-background, #2d2d2d); border-radius: 4px; font-size: 12px;">
-      {{META_INFO_HTML}}
-    </div>
-    
-    <div class="request-id-section">
-      <span class="request-id-label">ID:</span>
-      <span class="request-id-value" id="requestIdValue" title="{{REQUEST_ID}}">{{REQUEST_ID}}</span>
-      <button class="copy-btn" id="copyBtn" title="Copy to clipboard">📋 Copy</button>
-    </div>
-    
-    {{OPTIONS_HTML}}
-    
-    <div class="input-section">
-      <label class="input-label">
-        Additional instructions <span class="optional">(optional)</span>:
-      </label>
-      <textarea 
-        id="userInput" 
-        placeholder="Enter your next instruction..."
-        autofocus
-      ></textarea>
-    </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Checkpoint</title>
+    <link rel="stylesheet" href="../shared/design-system.css" />
+    <style>
+      /* ═══ Page-specific styles ═══ */
+      body {
+        padding: 24px 20px;
+        min-height: 100vh;
+      }
 
-    <div class="upload-section">
-      <div class="upload-options">
-        <label>Upload image (optional):</label>
-        <label><input type="radio" name="uploadType" value="base64" checked> Image content (Base64)</label>
-        <label><input type="radio" name="uploadType" value="path"> Path only</label>
-      </div>
-      <div class="upload-hint" id="dropZone">
-        <span id="dropText">📋 Ctrl+V to paste or drag image here</span>
-        <div id="imagePreviewContainer" style="display: none;">
-          <img id="imagePreview" class="image-preview" />
-          <div class="image-info" id="imageInfo"></div>
-          <button type="button" class="remove-image" id="removeImage">✕ Remove</button>
+      .container {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+
+      /* ── Header ── */
+      .header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .header-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--md-sys-color-primary);
+        border-radius: var(--md-sys-shape-corner-medium);
+        font-size: 20px;
+        flex-shrink: 0;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+      .header-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .header h1 {
+        font-size: 24px;
+        font-weight: 400;
+        color: var(--md-sys-color-on-surface);
+        line-height: 1.3;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        letter-spacing: 0.1px;
+      }
+      .header-context {
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-top: 4px;
+        line-height: 1.4;
+      }
+
+      /* ── Meta pills ── */
+      .meta-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .meta-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: var(--md-sys-shape-corner-small);
+        background: var(--md-sys-color-surface-container);
+        color: var(--md-sys-color-on-surface-variant);
+        border: 1px solid var(--md-sys-color-outline);
+        transition: all 0.2s ease;
+      }
+      .meta-pill:hover {
+        background: var(--md-sys-color-surface-container-high);
+      }
+      .meta-pill .meta-val {
+        color: var(--md-sys-color-primary);
+        font-weight: 500;
+      }
+      .meta-pill .meta-val.green {
+        color: var(--md-sys-color-success);
+      }
+
+      /* ── Summary card ── */
+      .summary-card {
+        background: var(--md-sys-color-surface-container);
+        border-left: 4px solid var(--md-sys-color-primary);
+        border-radius: 0 var(--md-sys-shape-corner-medium)
+          var(--md-sys-shape-corner-medium) 0;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+      .summary-label {
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: 8px;
+      }
+      .summary-text {
+        font-size: 14px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--md-sys-color-on-surface);
+      }
+
+      /* ── Quick options ── */
+      .options-section {
+        margin-bottom: 24px;
+      }
+      .options-label {
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: 12px;
+      }
+      .options-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .option-btn {
+        padding: 10px 20px;
+        background: transparent;
+        color: var(--md-sys-color-primary);
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: var(--md-sys-shape-corner-small);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      .option-btn:hover {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-color: var(--md-sys-color-primary);
+        box-shadow: var(--md-sys-elevation-level1);
+        transform: translateY(-1px);
+      }
+      .option-btn:active {
+        transform: scale(0.98);
+      }
+
+      /* ── Divider ── */
+      .divider {
+        height: 1px;
+        background: var(--md-sys-color-outline);
+        margin: 24px 0;
+        opacity: 0.6;
+      }
+
+      /* ── Input section ── */
+      .input-section {
+        margin-bottom: 20px;
+      }
+      .input-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface);
+        margin-bottom: 8px;
+        letter-spacing: 0.1px;
+      }
+      .input-hint {
+        color: var(--md-sys-color-on-surface-variant);
+        font-weight: normal;
+        font-size: 12px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px 16px;
+        font-family: "Roboto", var(--vscode-font-family, sans-serif);
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--md-sys-color-on-surface);
+        background-color: var(--md-sys-color-surface-container);
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: var(--md-sys-shape-corner-small);
+        resize: vertical;
+        outline: none;
+        transition: all 0.2s ease;
+      }
+      textarea:focus {
+        border-color: var(--md-sys-color-primary);
+        border-width: 2px;
+        box-shadow: 0 0 0 2px
+          color-mix(in srgb, var(--md-sys-color-primary) 20%, transparent);
+      }
+      textarea::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+      }
+
+      /* ── Image upload ── */
+      .upload-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        cursor: pointer;
+        margin-bottom: 12px;
+        user-select: none;
+        padding: 8px 12px;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        transition: all 0.2s ease;
+      }
+      .upload-toggle:hover {
+        color: var(--md-sys-color-on-surface);
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-on-surface) 4%,
+          transparent
+        );
+      }
+      .upload-toggle .arrow {
+        transition: transform 0.2s;
+        display: inline-block;
+        font-size: 12px;
+      }
+      .upload-toggle .arrow.open {
+        transform: rotate(90deg);
+      }
+      .upload-body {
+        display: none;
+        margin-bottom: 16px;
+      }
+      .upload-body.open {
+        display: block;
+      }
+      .drop-zone {
+        font-size: 14px;
+        color: var(--md-sys-color-on-surface-variant);
+        text-align: center;
+        padding: 20px;
+        border: 2px dashed var(--md-sys-color-outline);
+        border-radius: var(--md-sys-shape-corner-small);
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          background-color 0.2s;
+        background: var(--md-sys-color-surface-container);
+      }
+      .drop-zone:hover {
+        border-color: var(--md-sys-color-primary);
+        background: var(--md-sys-color-surface-container-high);
+      }
+      .drop-zone.has-image {
+        border-color: var(--md-sys-color-primary);
+        border-style: solid;
+        padding: 16px;
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-primary) 4%,
+          var(--md-sys-color-surface-container)
+        );
+      }
+      .image-preview {
+        max-width: 100%;
+        max-height: 140px;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        margin-bottom: 8px;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+      .image-info {
+        font-size: 12px;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-bottom: 8px;
+      }
+      .remove-image {
+        background: var(--md-sys-color-error);
+        color: var(--md-sys-color-on-error);
+        border: none;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        padding: 6px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+      .remove-image:hover {
+        background: color-mix(in srgb, var(--md-sys-color-error) 90%, black);
+        transform: translateY(-1px);
+      }
+
+      /* ── Action buttons ── */
+      .button-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .action-btn {
+        flex: 1;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: var(--md-sys-shape-corner-small);
+        cursor: pointer;
+        transition:
+          opacity 0.2s,
+          transform 0.1s,
+          box-shadow 0.2s;
+        letter-spacing: 0.1px;
+      }
+      .action-btn:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .action-btn:active {
+        transform: scale(0.98);
+      }
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+        transform: none;
+      }
+      .btn-primary {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        flex: 2;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+      .btn-primary:hover {
+        box-shadow: var(--md-sys-elevation-level2);
+      }
+      .btn-secondary {
+        background: var(--md-sys-color-surface-variant);
+        color: var(--md-sys-color-on-surface-variant);
+        flex: 1;
+        border: 1px solid var(--md-sys-color-outline);
+      }
+      .btn-secondary:hover {
+        background: var(--md-sys-color-surface-container-high);
+      }
+
+      /* ── Footer ── */
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 20px;
+        font-size: 12px;
+        color: var(--md-sys-color-on-surface-variant);
+      }
+      .footer-id {
+        font-family: "Roboto Mono", var(--vscode-editor-font-family, monospace);
+        font-size: 11px;
+        opacity: 0.7;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 4px 8px;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+      }
+      .footer-id:hover {
+        opacity: 1;
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-on-surface) 8%,
+          transparent
+        );
+      }
+      .footer-shortcut kbd {
+        background: var(--md-sys-color-surface-container);
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        padding: 2px 6px;
+        font-size: 11px;
+        font-family: "Roboto Mono", var(--vscode-editor-font-family, monospace);
+        color: var(--md-sys-color-on-surface-variant);
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-icon">
+          <span
+            class="material-symbols-outlined"
+            style="font-size: 22px; color: var(--md-sys-color-on-primary)"
+            >chat</span
+          >
+        </div>
+        <div class="header-text">
+          <h1>{{HEADER_TITLE}}</h1>
+          {{HEADER_CONTEXT_HTML}}
         </div>
       </div>
+
+      <!-- Meta pills -->
+      <div class="meta-pills">{{META_INFO_HTML}}</div>
+
+      <!-- Summary -->
+      <div class="summary-card">
+        <div class="summary-label">Summary</div>
+        <div class="summary-text">{{REASON}}</div>
+      </div>
+
+      <!-- Quick options -->
+      {{OPTIONS_HTML}}
+
+      <div class="divider"></div>
+
+      <!-- Text input -->
+      <div class="input-section">
+        <label class="input-label">
+          Your response
+          <span class="input-hint">(or pick an option above)</span>
+        </label>
+        <textarea
+          id="userInput"
+          placeholder="Type your instructions here..."
+          autofocus
+        ></textarea>
+      </div>
+
+      <!-- Image upload (collapsible) -->
+      <div class="upload-section">
+        <div class="upload-toggle" id="uploadToggle">
+          <span
+            class="material-symbols-outlined arrow"
+            id="uploadArrow"
+            style="font-size: 18px"
+            >chevron_right</span
+          >
+          <span class="material-symbols-outlined" style="font-size: 18px"
+            >attach_file</span
+          >
+          <span>Attach image</span>
+        </div>
+        <div class="upload-body" id="uploadBody">
+          <div class="drop-zone" id="dropZone">
+            <span id="dropText">Ctrl+V to paste or drag image here</span>
+            <div id="imagePreviewContainer" style="display: none">
+              <img id="imagePreview" class="image-preview" />
+              <div class="image-info" id="imageInfo"></div>
+              <button type="button" class="remove-image" id="removeImage">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="button-group">
+        <button class="action-btn btn-primary" id="continueBtn">Send</button>
+        <button class="action-btn btn-secondary" id="endBtn">End</button>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <span class="footer-shortcut"
+          ><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span
+        >
+        <span class="footer-id" id="footerId" title="{{REQUEST_ID}}"
+          >{{REQUEST_ID}}</span
+        >
+      </div>
     </div>
-    
-    <div class="button-group">
-      <button class="btn-primary" id="continueBtn">▶ Continue</button>
-      <button class="btn-secondary" id="endBtn">■ End Session</button>
-    </div>
-    
-    <div class="shortcuts">
-      Click <strong>Continue</strong> to proceed or <strong>End Session</strong> to stop
-    </div>
-  </div>
-  
-  <script>
-    const vscode = acquireVsCodeApi();
-    const textarea = document.getElementById('userInput');
-    const continueBtn = document.getElementById('continueBtn');
-    const endBtn = document.getElementById('endBtn');
-    const dropZone = document.getElementById('dropZone');
-    const dropText = document.getElementById('dropText');
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    const imagePreview = document.getElementById('imagePreview');
-    const imageInfo = document.getElementById('imageInfo');
-    const removeImageBtn = document.getElementById('removeImage');
-    const copyBtn = document.getElementById('copyBtn');
-    const requestIdValue = document.getElementById('requestIdValue');
-    
-    let currentImageBase64 = null;
-    
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(requestIdValue.textContent);
-        copyBtn.textContent = '✓ Copied';
-        copyBtn.classList.add('copied');
-        setTimeout(() => {
-          copyBtn.textContent = '📋 Copy';
-          copyBtn.classList.remove('copied');
-        }, 2000);
-      } catch (e) {
-        console.error('Failed to copy:', e);
-      }
-    });
-    
-    textarea.focus();
-    
-    document.addEventListener('paste', (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (file) handleImageFile(file);
-          break;
-        }
-      }
-    });
-    
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = 'var(--vscode-focusBorder, #007fd4)';
-      dropZone.style.backgroundColor = 'var(--vscode-list-hoverBackground, #2a2d2e)';
-    });
-    
-    dropZone.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      if (!currentImageBase64) {
-        dropZone.style.borderColor = '';
-        dropZone.style.backgroundColor = '';
-      }
-    });
-    
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.style.borderColor = '';
-      dropZone.style.backgroundColor = '';
-      const files = e.dataTransfer?.files;
-      if (files && files.length > 0) {
-        const file = files[0];
-        if (file.type.startsWith('image/')) handleImageFile(file);
-      }
-    });
-    
-    function handleImageFile(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        currentImageBase64 = e.target.result;
-        imagePreview.src = currentImageBase64;
-        imageInfo.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
-        dropText.style.display = 'none';
-        imagePreviewContainer.style.display = 'block';
-        dropZone.classList.add('has-image');
-      };
-      reader.readAsDataURL(file);
-    }
-    
-    function formatFileSize(bytes) {
-      if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-    
-    removeImageBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      currentImageBase64 = null;
-      imagePreview.src = '';
-      imageInfo.textContent = '';
-      dropText.style.display = 'block';
-      imagePreviewContainer.style.display = 'none';
-      dropZone.classList.remove('has-image');
-    });
-    
-    document.querySelectorAll('.option-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const target = e.currentTarget;
-        const option = target.getAttribute('data-option') || '';
-        target.style.opacity = '0.5';
-        target.textContent = 'Sending...';
-        vscode.postMessage({ command: 'continue', text: option, hasImage: false });
+
+    <script>
+      const vscode = acquireVsCodeApi();
+      const textarea = document.getElementById("userInput");
+      const continueBtn = document.getElementById("continueBtn");
+      const endBtn = document.getElementById("endBtn");
+      const dropZone = document.getElementById("dropZone");
+      const dropText = document.getElementById("dropText");
+      const imagePreviewContainer = document.getElementById(
+        "imagePreviewContainer",
+      );
+      const imagePreview = document.getElementById("imagePreview");
+      const imageInfo = document.getElementById("imageInfo");
+      const removeImageBtn = document.getElementById("removeImage");
+      const footerId = document.getElementById("footerId");
+      const uploadToggle = document.getElementById("uploadToggle");
+      const uploadArrow = document.getElementById("uploadArrow");
+      const uploadBody = document.getElementById("uploadBody");
+
+      let currentImageBase64 = null;
+
+      // ── Toggle image upload section ──
+      uploadToggle.addEventListener("click", () => {
+        const isOpen = uploadBody.classList.toggle("open");
+        uploadArrow.classList.toggle("open", isOpen);
       });
-    });
-    
-    const continueOriginalText = continueBtn.textContent;
-    const endOriginalText = endBtn.textContent;
-    
-    continueBtn.addEventListener('click', submitContinue);
-    endBtn.addEventListener('click', submitEnd);
-    
-    window.addEventListener('message', event => {
-      const message = event.data;
-      switch (message.command) {
-        case 'sendFailed':
+
+      // ── Copy request ID on click ──
+      footerId.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(footerId.title);
+          const original = footerId.textContent;
+          footerId.textContent = "Copied!";
+          footerId.style.opacity = "1";
+          setTimeout(() => {
+            footerId.textContent = original;
+            footerId.style.opacity = "";
+          }, 1500);
+        } catch (e) {
+          console.error("Failed to copy:", e);
+        }
+      });
+
+      // ── Focus textarea ──
+      textarea.focus();
+
+      // ── Keyboard shortcut: Ctrl+Enter to send ──
+      document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          if (!continueBtn.disabled) submitContinue();
+        }
+      });
+
+      // ── Image paste ──
+      document.addEventListener("paste", (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            if (file) {
+              // Auto-expand upload section
+              if (!uploadBody.classList.contains("open")) {
+                uploadBody.classList.add("open");
+                uploadArrow.classList.add("open");
+              }
+              handleImageFile(file);
+            }
+            break;
+          }
+        }
+      });
+
+      // ── Drag & drop ──
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "var(--md-sys-color-primary)";
+        dropZone.style.backgroundColor =
+          "var(--md-sys-color-surface-container-high)";
+      });
+      dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        if (!currentImageBase64) {
+          dropZone.style.borderColor = "";
+          dropZone.style.backgroundColor = "";
+        }
+      });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = "";
+        dropZone.style.backgroundColor = "";
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0 && files[0].type.startsWith("image/"))
+          handleImageFile(files[0]);
+      });
+
+      function handleImageFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          currentImageBase64 = e.target.result;
+          imagePreview.src = currentImageBase64;
+          imageInfo.textContent =
+            file.name + " (" + formatFileSize(file.size) + ")";
+          dropText.style.display = "none";
+          imagePreviewContainer.style.display = "block";
+          dropZone.classList.add("has-image");
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+      }
+
+      removeImageBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        currentImageBase64 = null;
+        imagePreview.src = "";
+        imageInfo.textContent = "";
+        dropText.style.display = "block";
+        imagePreviewContainer.style.display = "none";
+        dropZone.classList.remove("has-image");
+      });
+
+      // ── Quick option buttons ──
+      document.querySelectorAll(".option-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          const target = e.currentTarget;
+          const option = target.getAttribute("data-option") || "";
+          // Disable all option buttons
+          document.querySelectorAll(".option-btn").forEach((b) => {
+            b.disabled = true;
+            b.style.opacity = "0.5";
+          });
+          target.textContent = "Sending...";
+          target.style.opacity = "0.7";
+          vscode.postMessage({
+            command: "continue",
+            text: option,
+            hasImage: false,
+          });
+        });
+      });
+
+      // ── Main action buttons ──
+      const continueOriginalText = continueBtn.textContent;
+      const endOriginalText = endBtn.textContent;
+
+      continueBtn.addEventListener("click", submitContinue);
+      endBtn.addEventListener("click", submitEnd);
+
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (message.command === "sendFailed") {
           continueBtn.textContent = continueOriginalText;
           continueBtn.disabled = false;
           endBtn.textContent = endOriginalText;
           endBtn.disabled = false;
-          break;
+          document.querySelectorAll(".option-btn").forEach((b) => {
+            b.disabled = false;
+            b.style.opacity = "";
+          });
+        }
+      });
+
+      function submitContinue() {
+        continueBtn.textContent = "Sending...";
+        continueBtn.disabled = true;
+        endBtn.disabled = true;
+
+        let text = textarea.value.trim();
+        let imageBase64 = null;
+
+        if (currentImageBase64) {
+          imageBase64 = currentImageBase64;
+          text = (text ? text + "\\n\\n" : "") + "[图片已附加]";
+        }
+
+        vscode.postMessage({
+          command: "continue",
+          text: text || "继续",
+          imageBase64: imageBase64,
+          hasImage: !!currentImageBase64,
+        });
+
+        setTimeout(() => {
+          if (
+            continueBtn.disabled &&
+            continueBtn.textContent === "Sending..."
+          ) {
+            continueBtn.textContent = "Retry";
+            continueBtn.disabled = false;
+            endBtn.disabled = false;
+          }
+        }, 5000);
       }
-    });
-    
-    function submitContinue() {
-      continueBtn.textContent = 'Sending...';
-      continueBtn.disabled = true;
-      endBtn.disabled = true;
-      
-      let text = textarea.value.trim();
-      if (currentImageBase64) {
-        const uploadType = document.querySelector('input[name="uploadType"]:checked')?.value || 'base64';
-        if (uploadType === 'base64') {
-          text = (text ? text + '\\n\\n' : '') + '[图片已附加]\\n' + currentImageBase64;
-        }
+
+      function submitEnd() {
+        endBtn.textContent = "Ending...";
+        endBtn.disabled = true;
+        continueBtn.disabled = true;
+        vscode.postMessage({ command: "end" });
+
+        setTimeout(() => {
+          if (endBtn.disabled && endBtn.textContent === "Ending...") {
+            endBtn.textContent = "Retry End";
+            endBtn.disabled = false;
+            continueBtn.disabled = false;
+          }
+        }, 5000);
       }
-      
-      vscode.postMessage({ command: 'continue', text: text || '继续', hasImage: !!currentImageBase64 });
-      
-      setTimeout(() => {
-        if (continueBtn.disabled && continueBtn.textContent === 'Sending...') {
-          continueBtn.textContent = continueOriginalText + ' (Retry)';
-          continueBtn.disabled = false;
-          endBtn.disabled = false;
-        }
-      }, 5000);
-    }
-    
-    function submitEnd() {
-      endBtn.textContent = 'Sending...';
-      endBtn.disabled = true;
-      continueBtn.disabled = true;
-      vscode.postMessage({ command: 'end' });
-      
-      setTimeout(() => {
-        if (endBtn.disabled && endBtn.textContent === 'Sending...') {
-          endBtn.textContent = endOriginalText + ' (Retry)';
-          endBtn.disabled = false;
-          continueBtn.disabled = false;
-        }
-      }, 5000);
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>

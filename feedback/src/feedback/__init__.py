@@ -5,6 +5,7 @@ Feedback - AI 交互式反馈工具
 """
 
 __version__ = "1.0.0"
-__all__ = ["collect_feedback", "FeedbackCollector"]
+__all__ = ["collect_feedback", "FeedbackCollector", "FeedbackResult"]
 
-from .collector import FeedbackCollector, collect_feedback
+from .collector import FeedbackCollector, FeedbackResult, collect_feedback
+

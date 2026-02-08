@@ -1,34 +1,17 @@
 /**
- * Feedback Client - 使用文件系统与 CLI 通信
+ * Polling Client - 使用文件系统与 CLI 通信
  */
 import * as fs from "fs";
 import * as path from "path";
-import * as os from "os";
-import { AskRequest } from "../types";
-
-// 共享目录
-const REQUESTS_DIR = path.join(os.homedir(), ".session-helper", "requests");
-const PENDING_DIR = path.join(REQUESTS_DIR, "pending");
-const COMPLETED_DIR = path.join(REQUESTS_DIR, "completed");
+import { AskRequest, FeedbackMetadata, PendingRequest } from "../types";
+import { PENDING_DIR, COMPLETED_DIR } from "../core/config";
 
 let watchInterval: NodeJS.Timeout | null = null;
 let isPolling = false;
 
-// 已处理的请求 ID
+// 已处理的请求 ID（限制容量防止内存泄漏）
+const MAX_PROCESSED_CACHE = 200;
 const processedRequests = new Set<string>();
-
-// CLI 写入的请求文件格式
-interface PendingRequest {
-  id: string;
-  project?: string;
-  summary?: string;
-  createdAt?: string;
-  sessionId?: string;
-  model?: string;
-  title?: string;
-  agentId?: string;
-  options?: string[];
-}
 
 /**
  * 确保目录存在
@@ -48,12 +31,12 @@ function ensureDirs(): void {
 function getPendingRequests(): PendingRequest[] {
   ensureDirs();
   const requests: PendingRequest[] = [];
-  
+
   try {
     const files = fs.readdirSync(PENDING_DIR);
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
-      
+
       const filePath = path.join(PENDING_DIR, file);
       try {
         const content = fs.readFileSync(filePath, "utf-8");
@@ -66,7 +49,7 @@ function getPendingRequests(): PendingRequest[] {
   } catch {
     // 目录不存在或无法读取
   }
-  
+
   return requests;
 }
 
@@ -77,11 +60,11 @@ export async function submitFeedback(
   requestId: string,
   content: string,
   images?: string[],
-  metadata?: FeedbackMetadata
+  metadata?: FeedbackMetadata,
 ): Promise<boolean> {
   try {
     ensureDirs();
-    
+
     const responseFile = path.join(COMPLETED_DIR, `${requestId}.json`);
     const response = {
       requestId,
@@ -94,12 +77,12 @@ export async function submitFeedback(
       title: metadata?.title,
       agentId: metadata?.agentId,
     };
-    
+
     fs.writeFileSync(responseFile, JSON.stringify(response, null, 2), "utf-8");
-    console.log(`[FeedbackClient] 响应已写入: ${requestId}`);
+    console.log(`[PollingClient] 响应已写入: ${requestId}`);
     return true;
   } catch (error) {
-    console.error(`[FeedbackClient] 写入响应失败:`, error);
+    console.error(`[PollingClient] 写入响应失败:`, error);
     return false;
   }
 }
@@ -128,23 +111,28 @@ function convertToAskRequest(pending: PendingRequest): AskRequest {
 export function startPolling(
   onRequest: (request: AskRequest) => Promise<void>,
   onStatusChange: (running: boolean, port: number) => void,
-  intervalMs: number = 1000
+  intervalMs: number = 1000,
 ): void {
   if (isPolling) return;
-  
+
   ensureDirs();
   isPolling = true;
   onStatusChange(true, 0);
-  console.log(`[FeedbackClient] 开始监听请求目录: ${PENDING_DIR}`);
-  
+  console.log(`[PollingClient] 开始监听请求目录: ${PENDING_DIR}`);
+
   // 轮询检查新请求
   watchInterval = setInterval(async () => {
     const pending = getPendingRequests();
-    
+
     for (const request of pending) {
       if (!processedRequests.has(request.id)) {
         processedRequests.add(request.id);
-        console.log(`[FeedbackClient] 发现新请求: ${request.id}`);
+        // 防止内存泄漏：超过容量时清理最早的条目
+        if (processedRequests.size > MAX_PROCESSED_CACHE) {
+          const first = processedRequests.values().next().value;
+          if (first) processedRequests.delete(first);
+        }
+        console.log(`[PollingClient] 发现新请求: ${request.id}`);
         const askRequest = convertToAskRequest(request);
         await onRequest(askRequest);
       }
@@ -162,7 +150,7 @@ export function stopPolling(): void {
   }
   isPolling = false;
   processedRequests.clear();
-  console.log("[FeedbackClient] 停止监听");
+  console.log("[PollingClient] 停止监听");
 }
 
 /**
@@ -171,14 +159,3 @@ export function stopPolling(): void {
 export function isPollingActive(): boolean {
   return isPolling;
 }
-
-// PendingRequest 接口在文件顶部已定义
-
-interface FeedbackMetadata {
-  model?: string;
-  sessionId?: string;
-  title?: string;
-  agentId?: string;
-}
-
-export type { FeedbackMetadata };

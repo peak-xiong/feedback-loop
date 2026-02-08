@@ -29,22 +29,22 @@ def main():
         help="AI 工作摘要",
     )
     parser.add_argument(
-        "--session-id",
+        "-i", "--session-id",
         type=str,
         help="会话 ID（关联同一对话）",
     )
     parser.add_argument(
-        "--model",
+        "-m", "--model",
         type=str,
         help="模型名称",
     )
     parser.add_argument(
-        "--title",
+        "-t", "--title",
         type=str,
         help="对话标题",
     )
     parser.add_argument(
-        "--options",
+        "-o", "--options",
         type=str,
         help="快捷选项（逗号分隔，如 '继续,重试,取消'）",
     )

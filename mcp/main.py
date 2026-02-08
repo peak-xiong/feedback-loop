@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """
+@deprecated This module is not currently in use.
+The active workflow uses file-system based communication (CLI ↔ Extension).
+This MCP module still uses HTTP callback which is incompatible with the
+current Extension's file-polling architecture. Retained for reference.
+
 Session Helper MCP Server - Entry Point
 Provides io/pause/join/recall tools for AI session management.
 """

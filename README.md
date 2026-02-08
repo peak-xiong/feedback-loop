@@ -46,12 +46,18 @@ CLI 读取响应，返回给大模型
 # 1. 安装 feedback CLI
 cd feedback && uv sync
 
-# 2. 编译并安装扩展 (VSCode)
-cd extension && npm install && npm run release
+# 2. 编译并安装扩展
+cd extension
+npm install
+npm version patch   # 自动更新版本号 (patch/minor/major)
+npm run package     # 编译并打包
+
+# 3. 安装到 IDE
+# VSCode
 code --install-extension dist/io-util.vsix --force
 
-# 3. 编译并安装扩展 (Windsurf)
-windsurf --install-extension dist/io-util.vsix --force
+# Windsurf
+/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf --install-extension dist/io-util.vsix --force
 
 # 4. 重新加载窗口
 # Cmd+Shift+P → "Developer: Reload Window"
@@ -67,13 +73,14 @@ cd /path/to/session-helper/feedback && uv run feedback -p "项目目录" -s "工
 
 ### 参数
 
-| 参数 | 说明 | 必选 |
+| 简写 | 全写 | 说明 |
 |------|------|------|
-| `-p` | 项目目录路径 | ✅ |
-| `-s` | AI 工作完成摘要 | ✅ |
-| `--session-id` | 会话 ID | 可选 |
-| `--model` | 模型名称 | 可选 |
-| `--title` | 对话标题 | 可选 |
+| `-p` | `--project` | 项目目录路径 |
+| `-s` | `--summary` | AI 工作摘要 |
+| `-i` | `--session-id` | 会话 ID |
+| `-m` | `--model` | 模型名称 |
+| `-t` | `--title` | 对话标题 |
+| `-o` | `--options` | 快捷选项（逗号分隔） |
 
 ---
 
@@ -84,11 +91,14 @@ session-helper/
 ├── feedback/               # CLI 工具 (Python)
 │   └── src/feedback/
 │       ├── cli.py          # 命令入口
-│       └── collector.py    # 反馈收集
+│       ├── collector.py    # 反馈收集
+│       └── config.py       # 配置常量
 ├── extension/              # VS Code 扩展 (TypeScript)
-│   ├── src/core/           # 核心逻辑
+│   ├── src/core/           # 核心逻辑 + 配置
 │   ├── src/views/          # UI 组件
-│   └── src/server/         # 文件监听
+│   ├── src/polling/        # 文件轮询
+│   ├── src/types/          # 类型定义
+│   └── src/utils/          # 工具函数
 ├── prompts/                # 规则模板
 └── scripts/                # 工具脚本
 ```

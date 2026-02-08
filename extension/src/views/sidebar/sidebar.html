@@ -1,214 +1,323 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: var(--vscode-font-family);
-      padding: 15px;
-      color: var(--vscode-foreground);
-      background-color: var(--vscode-sideBar-background);
-    }
-    .title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .status-card {
-      background: var(--vscode-editor-background);
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-    .status-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .status-row:last-child { margin-bottom: 0; }
-    .label {
-      color: var(--vscode-descriptionForeground);
-      font-size: 12px;
-    }
-    .value {
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .value.running { color: #4ec9b0; }
-    .value.stopped { color: #f14c4c; }
-    .btn {
-      width: 100%;
-      padding: 8px 12px;
-      margin-top: 8px;
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .btn:hover { background: var(--vscode-button-hoverBackground); }
-    .btn-secondary {
-      background: var(--vscode-button-secondaryBackground);
-      color: var(--vscode-button-secondaryForeground);
-    }
-    .btn-secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
-    .section-title {
-      font-size: 12px;
-      font-weight: 600;
-      margin: 16px 0 8px 0;
-      color: var(--vscode-foreground);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .refresh-btn {
-      background: none;
-      border: none;
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      font-size: 12px;
-      padding: 2px 6px;
-    }
-    .refresh-btn:hover { text-decoration: underline; }
-    .session-list {
-      background: var(--vscode-editor-background);
-      border-radius: 6px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .session-item {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .session-item:last-child { border-bottom: none; }
-    .session-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .session-id {
-      font-family: monospace;
-      font-size: 11px;
-      color: var(--vscode-textLink-foreground);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 120px;
-    }
-    .session-status {
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 10px;
-    }
-    .session-status.pending {
-      background: #f0ad4e;
-      color: #000;
-    }
-    .session-status.completed {
-      background: #5cb85c;
-      color: #fff;
-    }
-    .session-reason {
-      font-size: 11px;
-      color: var(--vscode-descriptionForeground);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .session-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 4px;
-    }
-    .action-btn {
-      background: none;
-      border: none;
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      font-size: 11px;
-      padding: 0;
-    }
-    .action-btn:hover { text-decoration: underline; }
-    .empty-state {
-      padding: 20px;
-      text-align: center;
-      color: var(--vscode-descriptionForeground);
-      font-size: 12px;
-    }
-    .info-box {
-      background: var(--vscode-textBlockQuote-background);
-      border-left: 3px solid var(--vscode-textLink-foreground);
-      padding: 10px;
-      margin-top: 12px;
-      font-size: 11px;
-      line-height: 1.5;
-      color: var(--vscode-descriptionForeground);
-    }
-    .info-box strong { color: var(--vscode-foreground); }
-  </style>
-</head>
-<body>
-  <div class="title">⚡ IO Util</div>
-  
-  <div class="status-card">
-    <div class="status-row">
-      <span class="label">Status</span>
-      <span class="value {{STATUS_CLASS}}">{{STATUS_ICON}} {{STATUS_TEXT}}</span>
-    </div>
-    <div class="status-row">
-      <span class="label">Sessions</span>
-      <span class="value">{{REQUEST_COUNT}}</span>
-    </div>
-  </div>
-  
-  <button class="btn btn-primary" onclick="openPanel()">📋 Reopen Panel</button>
-  <button class="btn btn-secondary" onclick="restart()">🔄 Restart</button>
-  
-  <div class="section-title">
-    <span>📂 Sessions</span>
-    <button class="refresh-btn" onclick="refreshSessions()">🔄 Refresh</button>
-  </div>
-  
-  <div class="session-list" id="sessionList">
-    {{SESSIONS_HTML}}
-  </div>
-  
-  <div class="info-box">
-    <strong>Tip:</strong> AI 执行 CLI 命令后会自动弹出对话框。点击 "Reopen Panel" 重新打开上次请求。
-  </div>
-  
-  <script>
-    const vscode = acquireVsCodeApi();
-    
-    function openPanel() {
-      vscode.postMessage({ command: 'openPanel' });
-    }
-    
-    function restart() {
-      vscode.postMessage({ command: 'restart' });
-    }
-    
-    function refreshSessions() {
-      vscode.postMessage({ command: 'refreshSessions' });
-    }
-    
-    function reopenSession(requestId) {
-      vscode.postMessage({ command: 'reopenSession', requestId: requestId });
-    }
-    
-    function deleteSession(requestId) {
-      vscode.postMessage({ command: 'deleteSession', requestId: requestId });
-    }
-  </script>
-</body>
-</html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="../shared/design-system.css" />
+    <style>
+      /* ═══ Page-specific styles ═══ */
+      body {
+        padding: 16px;
+        background-color: var(
+          --md-sys-color-surface,
+          var(--vscode-sideBar-background)
+        );
+      }
 
+      .title {
+        font-size: 22px;
+        font-weight: 500;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--md-sys-color-on-surface);
+        letter-spacing: 0.1px;
+      }
+
+      .title .material-symbols-outlined {
+        font-size: 24px;
+        color: var(--md-sys-color-primary);
+      }
+
+      .status-card {
+        background: var(--md-sys-color-surface-container);
+        border-radius: var(--md-sys-shape-corner-medium);
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .status-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .label {
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: 14px;
+        font-weight: 400;
+      }
+
+      .value {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .value.running,
+      .value.stopped {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .value.running {
+        color: var(--md-sys-color-success);
+      }
+
+      .value.stopped {
+        color: var(--md-sys-color-error);
+      }
+
+      /* Buttons override for full width */
+      .btn {
+        width: 100%;
+        margin-top: 12px;
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin: 24px 0 12px 0;
+        color: var(--md-sys-color-on-surface);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        letter-spacing: 0.1px;
+      }
+
+      .section-title .icon-text {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .section-title .material-symbols-outlined {
+        font-size: 20px;
+      }
+
+      .refresh-btn {
+        background: none;
+        border: none;
+        color: var(--md-sys-color-primary);
+        cursor: pointer;
+        font-size: 13px;
+        padding: 4px 8px;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        transition: background-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .refresh-btn:hover {
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-primary) 8%,
+          transparent
+        );
+      }
+
+      .refresh-btn .material-symbols-outlined {
+        font-size: 16px;
+      }
+
+      .session-list {
+        background: var(--md-sys-color-surface-container);
+        border-radius: var(--md-sys-shape-corner-medium);
+        max-height: 240px;
+        overflow-y: auto;
+        box-shadow: var(--md-sys-elevation-level1);
+      }
+
+      .session-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--md-sys-color-outline);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        transition: background-color 0.2s ease;
+      }
+
+      .session-item:hover {
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-on-surface) 4%,
+          transparent
+        );
+      }
+
+      .session-item:last-child {
+        border-bottom: none;
+      }
+
+      .session-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .session-id {
+        font-family: "Roboto Mono", var(--vscode-editor-font-family, monospace);
+        font-size: 12px;
+        color: var(--md-sys-color-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+        font-weight: 500;
+      }
+
+      .session-status {
+        font-size: 10px;
+        padding: 3px 8px;
+        border-radius: var(--md-sys-shape-corner-small);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .session-status.pending {
+        background: var(--md-sys-color-surface-variant);
+        color: var(--md-sys-color-on-surface-variant);
+      }
+
+      .session-status.completed {
+        background: var(--md-sys-color-success);
+        color: var(--md-sys-color-on-success);
+      }
+
+      .session-reason {
+        font-size: 12px;
+        color: var(--md-sys-color-on-surface-variant);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.4;
+      }
+
+      .session-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        color: var(--md-sys-color-primary);
+        cursor: pointer;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: var(--md-sys-shape-corner-extra-small);
+        transition: all 0.2s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .action-btn:hover {
+        background: color-mix(
+          in srgb,
+          var(--md-sys-color-primary) 8%,
+          transparent
+        );
+        transform: translateY(-1px);
+      }
+
+      .action-btn .material-symbols-outlined {
+        font-size: 14px;
+      }
+
+      .empty-state {
+        padding: 24px;
+        text-align: center;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: 14px;
+        font-weight: 400;
+      }
+
+      .info-box {
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title">
+      <span class="material-symbols-outlined">bolt</span>
+      IO Util
+    </div>
+
+    <div class="status-card">
+      <div class="status-row">
+        <span class="label">Status</span>
+        <span class="value {{STATUS_CLASS}}">
+          <span class="status-indicator {{STATUS_CLASS}}"></span>
+          {{STATUS_TEXT}}
+        </span>
+      </div>
+      <div class="status-row">
+        <span class="label">Sessions</span>
+        <span class="value">{{REQUEST_COUNT}}</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary icon-btn" onclick="openPanel()">
+      <span class="material-symbols-outlined">assignment</span>
+      Reopen
+    </button>
+    <button class="btn btn-secondary icon-btn" onclick="restart()">
+      <span class="material-symbols-outlined">refresh</span>
+      Restart
+    </button>
+
+    <div class="section-title">
+      <span class="icon-text">
+        <span class="material-symbols-outlined">folder_open</span>
+        Sessions
+      </span>
+      <button class="refresh-btn" onclick="refreshSessions()">
+        <span class="material-symbols-outlined">refresh</span>
+        Refresh
+      </button>
+    </div>
+
+    <div class="session-list" id="sessionList">{{SESSIONS_HTML}}</div>
+
+    <div class="info-box">
+      <strong>Tip:</strong> AI 执行 CLI 命令后会自动弹出对话框。点击 "Reopen
+      Panel" 重新打开上次请求。
+    </div>
+
+    <script>
+      const vscode = acquireVsCodeApi();
+
+      function openPanel() {
+        vscode.postMessage({ command: "openPanel" });
+      }
+
+      function restart() {
+        vscode.postMessage({ command: "restart" });
+      }
+
+      function refreshSessions() {
+        vscode.postMessage({ command: "refreshSessions" });
+      }
+
+      function reopenSession(requestId) {
+        vscode.postMessage({ command: "reopenSession", requestId: requestId });
+      }
+
+      function deleteSession(requestId) {
+        vscode.postMessage({ command: "deleteSession", requestId: requestId });
+      }
+    </script>
+  </body>
+</html>

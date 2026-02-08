@@ -3,18 +3,18 @@
  */
 import * as vscode from "vscode";
 import { StatusViewProvider } from "../views/sidebar/provider";
-import { startServer, stopServer, isServerRunning } from "../server";
-import { showSessionCheckpointDialog, getLastPendingRequest } from "../views/dialog/handler";
+import { startServer, stopServer, isServerRunning } from "../polling";
+import {
+  showSessionCheckpointDialog,
+  getLastPendingRequest,
+} from "../views/dialog/handler";
 import { AskRequest } from "../types";
 
 let statusBarItem: vscode.StatusBarItem;
 let statusViewProvider: StatusViewProvider;
 let extensionUri: vscode.Uri;
 
-// API 服务器端口
-const API_PORT = 3000;
-
-function updateStatusBar(running: boolean, port?: number): void {
+function updateStatusBar(running: boolean, _port?: number): void {
   if (running) {
     statusBarItem.text = "$(check) IO";
     statusBarItem.tooltip = "IO Util: 监听中";
@@ -23,7 +23,9 @@ function updateStatusBar(running: boolean, port?: number): void {
   } else {
     statusBarItem.text = "$(x) IO";
     statusBarItem.tooltip = "IO Util: 已停止";
-    statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground");
+    statusBarItem.backgroundColor = new vscode.ThemeColor(
+      "statusBarItem.errorBackground",
+    );
     statusViewProvider?.updateStatus(false, 0);
   }
 }
@@ -39,10 +41,16 @@ export function activate(context: vscode.ExtensionContext): void {
 
   statusViewProvider = new StatusViewProvider(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(StatusViewProvider.viewType, statusViewProvider)
+    vscode.window.registerWebviewViewProvider(
+      StatusViewProvider.viewType,
+      statusViewProvider,
+    ),
   );
 
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    100,
+  );
   statusBarItem.command = "ioUtil.showStatus";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
@@ -53,16 +61,16 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("ioUtil.showStatus", () => {
       vscode.window.showInformationMessage(
-        `Session Helper: ${isServerRunning() ? `Polling active (API port ${API_PORT})` : "Stopped"}`
+        `Session Helper: ${isServerRunning() ? "Polling active" : "Stopped"}`,
       );
-    })
+    }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("ioUtil.restart", () => {
       startServer(handleRequest, updateStatusBar);
       vscode.window.showInformationMessage(`Session Helper restarted`);
-    })
+    }),
   );
 
   context.subscriptions.push(
@@ -71,9 +79,20 @@ export function activate(context: vscode.ExtensionContext): void {
       if (pendingRequest) {
         showSessionCheckpointDialog(pendingRequest, extensionUri);
       } else {
-        vscode.window.showInformationMessage("Session Helper: No pending requests");
+        vscode.window.showInformationMessage(
+          "Session Helper: No pending requests",
+        );
       }
-    })
+    }),
+  );
+
+  // 用于从 Sessions 列表重新打开特定请求
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ioUtil.openPanelWithRequest", (request: AskRequest) => {
+      if (request) {
+        showSessionCheckpointDialog(request, extensionUri);
+      }
+    }),
   );
 
   if (autoStart) {
@@ -86,4 +105,3 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {
   stopServer();
 }
-
