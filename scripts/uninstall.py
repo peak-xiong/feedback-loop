@@ -28,7 +28,7 @@ def uninstall_extension():
     print("[1/2] 卸载 Windsurf 扩展...")
     try:
         subprocess.run(
-            ["code", "--uninstall-extension", "peak-xiong.util-io"],
+            ["code", "--uninstall-extension", "peak-xiong.io-util"],
             capture_output=True
         )
         print("[OK] 已尝试卸载扩展")

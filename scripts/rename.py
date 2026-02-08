@@ -58,9 +58,9 @@ def get_project_root() -> Path:
 
 
 def update_server_py(config: dict):
-    """更新 server/server.py"""
-    root = get_project_root()
-    path = root / "server" / "server.py"
+    """更新 server/main.py"""
+    root = Path(__file__).resolve().parent.parent
+    path = root / "server" / "main.py"
     
     if not path.exists():
         print(f"[跳过] {path} 不存在")

@@ -1,6 +1,6 @@
 {
-  "name": "tool-sync",
-  "displayName": "Tool Sync",
+  "name": "io-util",
+  "displayName": "IO Util",
   "description": "Development session management utilities",
   "version": "1.3.0",
   "license": "MIT",
@@ -33,49 +33,49 @@
   "contributes": {
     "commands": [
       {
-        "command": "sessionHelper.showStatus",
-        "title": "Tool Sync: Show Status",
+        "command": "ioUtil.showStatus",
+        "title": "IO Util: Show Status",
         "icon": "$(info)"
       },
       {
-        "command": "sessionHelper.restart",
-        "title": "Tool Sync: Restart",
+        "command": "ioUtil.restart",
+        "title": "IO Util: Restart",
         "icon": "$(refresh)"
       },
       {
-        "command": "sessionHelper.openPanel",
-        "title": "Tool Sync: Open Panel",
+        "command": "ioUtil.openPanel",
+        "title": "IO Util: Open Panel",
         "icon": "$(comment-discussion)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "sessionHelper",
-          "title": "Tool Sync",
+          "id": "ioUtil",
+          "title": "IO Util",
           "icon": "$(comment-discussion)"
         }
       ]
     },
     "views": {
-      "sessionHelper": [
+      "ioUtil": [
         {
           "type": "webview",
-          "id": "sessionHelper.statusView",
+          "id": "ioUtil.statusView",
           "name": "Status Panel",
           "icon": "$(comment-discussion)"
         }
       ]
     },
     "configuration": {
-      "title": "Tool Sync",
+      "title": "IO Util",
       "properties": {
-        "sessionHelper.serverPort": {
+        "ioUtil.serverPort": {
           "type": "number",
           "default": 23983,
           "description": "Port for the Session Helper HTTP server"
         },
-        "sessionHelper.autoStart": {
+        "ioUtil.autoStart": {
           "type": "boolean",
           "default": true,
           "description": "Automatically start the server when IDE opens"
@@ -85,9 +85,13 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "clean": "rm -rf dist",
+    "compile": "npm run clean && tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package",
+    "package": "npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/io-util.vsix",
+    "release": "npm version patch --no-git-tag-version && npm run package",
+    "release:minor": "npm version minor --no-git-tag-version && npm run package",
+    "release:major": "npm version major --no-git-tag-version && npm run package",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {

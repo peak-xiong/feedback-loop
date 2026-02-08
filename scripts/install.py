@@ -138,12 +138,14 @@ def install_extension():
     print()
     print("[5/6] 安装 Windsurf 扩展...")
     root = get_project_root()
-    vsix = root / "extension" / "tool-sync-1.3.0.vsix"
+    vsix = root / "extension" / "dist" / "io-util.vsix"
     
     if not vsix.exists():
-        print(f"[警告] VSIX 文件不存在: {vsix}")
-        print("       请先编译: cd extension && npm run compile && npm run package")
+        print(f"[警告] 未找到插件包: {vsix}")
+        print("       请先编译: cd extension && npm run package")
         return False
+    
+    print(f"[信息] 找到扩展包: {vsix.name}")
     
     # 获取 CLI 路径
     if IS_WINDOWS:
@@ -177,6 +179,8 @@ def install_extension():
         "peak-xiong.dev-pause", 
         "peak-xiong.session-helper",
         "peak-xiong.ask-continue",
+        "peak-xiong.tool-sync",
+        "peak-xiong.util-io",
     ]
     for ext in old_extensions:
         try:
@@ -230,7 +234,7 @@ def configure_rules():
     print()
     print("[6/6] 配置全局规则...")
     root = get_project_root()
-    rules_src = root / "rules" / "example-windsurfrules.txt"
+    rules_src = root / "prompts" / "templates" / "windsurf.txt"
     
     if not rules_src.exists():
         print(f"[警告] 规则文件不存在: {rules_src}")

@@ -104,9 +104,9 @@ def get_project_root() -> Path:
 
 
 def update_server_py(config: dict) -> bool:
-    """更新 server/server.py"""
-    root = get_project_root()
-    path = root / "server" / "server.py"
+    """更新 server/main.py"""
+    root = Path(__file__).resolve().parent.parent
+    path = root / "server" / "main.py"
     
     if not path.exists():
         print(f"  [跳过] {path.name} 不存在")
@@ -315,7 +315,7 @@ def update_mcp_config(config: dict, old_name: str | None = None) -> bool:
     servers = mcp_data.get("mcpServers", {})
     
     root = get_project_root()
-    server_path = str(root / "server" / "server.py")
+    server_path = str(root / "server" / "main.py")
     python_path = str(root / ".venv" / "bin" / "python")
     
     # 保存 mcp-router 配置

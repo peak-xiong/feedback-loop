@@ -45,9 +45,9 @@ def get_mcp_config_path() -> Path:
 
 
 def get_server_path() -> str:
-    """获取 server.py 的绝对路径（使用正斜杠）"""
+    """获取 main.py 的绝对路径（使用正斜杠）"""
     script_dir = Path(__file__).parent.resolve()
-    server_path = script_dir / "server.py"
+    server_path = script_dir / "main.py"
     return str(server_path).replace("\\", "/")
 
 
@@ -103,11 +103,11 @@ def install_mcp_config():
     # 加载现有配置
     config = load_existing_config(config_path)
     
-    if "util-io" in config["mcpServers"]:
-        print("[信息] 检测到已有 util-io 配置，将更新")
+    if "io-util" in config["mcpServers"]:
+        print("[信息] 检测到已有 io-util 配置，将更新")
     
     # 添加/更新配置（使用虚拟环境 Python）
-    config["mcpServers"]["util-io"] = {
+    config["mcpServers"]["io-util"] = {
         "command": venv_python,
         "args": [server_path]
     }
@@ -136,11 +136,11 @@ def uninstall_mcp_config():
     backup_config(config_path)
     config = load_existing_config(config_path)
     
-    if "util-io" in config["mcpServers"]:
-        del config["mcpServers"]["util-io"]
-        print("[OK] 已移除 util-io 配置")
+    if "io-util" in config["mcpServers"]:
+        del config["mcpServers"]["io-util"]
+        print("[OK] 已移除 io-util 配置")
     else:
-        print("[信息] util-io 配置不存在")
+        print("[信息] io-util 配置不存在")
     
     try:
         with open(config_path, "w", encoding="utf-8") as f:
