@@ -57,14 +57,6 @@ cd ~/Documents/Web3Projects/session-helper/feedback && uv run feedback -p "项�
 -o "确认执行,取消,我再想想"
 ```
 
-### 长内容模式（--stdin）
-
-当 summary 内容较长时（超过几百字），使用 `--stdin` 避免命令行长度限制：
-
-```bash
-cd ~/Documents/Web3Projects/session-helper/feedback && echo '{"project":"/path/to/project","summary":"这里可以放很长的摘要内容...","model":"claude","title":"标题","options":["继续","修改","完成"]}' | uv run feedback --stdin
-```
-
 ## 执行流程（严格遵守）
 
 ```text
