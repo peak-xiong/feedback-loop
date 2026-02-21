@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://feedback-loop.dev/schemas/ask-request.schema.json",
+  "title": "AskRequest",
+  "type": "object",
+  "required": ["type", "requestId", "reason"],
+  "properties": {
+    "type": {
+      "type": "string"
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "callbackPort": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "model": {
+      "type": "string"
+    },
+    "agentId": {
+      "type": "string"
+    },
+    "context": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

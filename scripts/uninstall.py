@@ -1,71 +1,69 @@
 #!/usr/bin/env python3
 """
-Session Helper - 跨平台卸载脚本
+Feedback Loop 卸载脚本
+- 卸载 VSCode/Windsurf 扩展
+- 可选清理本地请求目录
 """
 
-import os
-import sys
+import shutil
 import subprocess
 from pathlib import Path
 
-IS_WINDOWS = sys.platform == "win32"
+
+def find_editor_cli() -> str | None:
+    candidates = [
+        "/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf",
+        "windsurf",
+        "code",
+    ]
+    for cli in candidates:
+        try:
+            result = subprocess.run(
+                [cli, "--version"], capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                return cli
+        except Exception:
+            continue
+    return None
 
 
-def print_header():
-    print("=" * 50)
-    print("   Session Helper - 卸载")
-    print("=" * 50)
-    print()
-
-
-def get_project_root() -> Path:
-    """获取项目根目录（scripts 的父目录）"""
-    return Path(__file__).parent.parent.resolve()
-
-
-def uninstall_extension():
-    """卸载扩展"""
-    print("[1/2] 卸载 Windsurf 扩展...")
+def uninstall_extension() -> None:
+    cli = find_editor_cli()
+    if not cli:
+        print("[警告] 未找到 windsurf/code CLI，跳过自动卸载扩展")
+        return
     try:
         subprocess.run(
-            ["code", "--uninstall-extension", "peak-xiong.io-util"],
-            capture_output=True
+            [cli, "--uninstall-extension", "peak-xiong.io-util", "--force"],
+            check=False,
+            capture_output=True,
+            text=True,
         )
-        print("[OK] 已尝试卸载扩展")
-    except Exception:
-        print("[警告] 无法自动卸载扩展")
+        print("[OK] 已执行扩展卸载命令: peak-xiong.io-util")
+    except Exception as e:
+        print(f"[警告] 卸载扩展失败: {e}")
 
 
-def remove_mcp_config():
-    """移除 MCP 配置"""
-    print()
-    print("[2/2] 清理 MCP 配置...")
-    root = get_project_root()
-    setup_script = root / "server" / "setup.py"
-    
-    if setup_script.exists():
-        try:
-            subprocess.run([sys.executable, str(setup_script), "--uninstall"], check=True)
-        except subprocess.CalledProcessError:
-            print("[警告] MCP 配置清理可能未完成")
+def maybe_clean_runtime_data() -> None:
+    target = Path.home() / ".feedback-loop"
+    if not target.exists():
+        return
+    answer = input("是否清理 ~/.feedback-loop 运行时数据？(y/N): ").strip().lower()
+    if answer in {"y", "yes"}:
+        shutil.rmtree(target, ignore_errors=True)
+        print("[OK] 已清理 ~/.feedback-loop")
+    else:
+        print("[跳过] 保留运行时数据")
 
 
-def print_success():
-    print()
-    print("=" * 50)
-    print("   卸载完成！")
-    print("=" * 50)
-    print()
-
-
-def main():
-    print_header()
+def main() -> None:
+    print("=" * 40)
+    print("Feedback Loop 卸载")
+    print("=" * 40)
     uninstall_extension()
-    remove_mcp_config()
-    print_success()
-    
-    if IS_WINDOWS:
-        input("按 Enter 退出...")
+    maybe_clean_runtime_data()
+    print("完成。")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,99 @@
+{
+  "name": "io-util",
+  "displayName": "IO Util",
+  "description": "Development session management utilities",
+  "version": "1.3.16",
+  "license": "MIT",
+  "publisher": "peak-xiong",
+  "author": {
+    "name": "Peak Xiong",
+    "url": "https://github.com/peak-xiong"
+  },
+  "homepage": "https://github.com/peak-xiong/feedback-loop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/peak-xiong/feedback-loop"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "session",
+    "workflow",
+    "productivity",
+    "checkpoint"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ioUtil.showStatus",
+        "title": "IO Util: Show Status",
+        "icon": "$(info)"
+      },
+      {
+        "command": "ioUtil.restart",
+        "title": "IO Util: Restart",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ioUtil.openPanel",
+        "title": "IO Util: Open Panel",
+        "icon": "$(comment-discussion)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ioUtil",
+          "title": "IO Util",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "views": {
+      "ioUtil": [
+        {
+          "type": "webview",
+          "id": "ioUtil.statusView",
+          "name": "Status Panel",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "IO Util",
+      "properties": {
+        "ioUtil.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the server when IDE opens"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "clean": "rm -rf dist",
+    "compile": "npm run clean && tsc -p ./ && mkdir -p dist/views/dialog dist/views/sidebar dist/views/shared && cp src/views/dialog/checkpoint.html dist/views/dialog/ && cp src/views/sidebar/sidebar.html dist/views/sidebar/ && cp src/views/shared/design-system.css dist/views/shared/",
+    "watch": "tsc -watch -p ./",
+    "package": "npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/io-util.vsix",
+    "release": "npm version patch --no-git-tag-version && npm run package",
+    "release:minor": "npm version minor --no-git-tag-version && npm run package",
+    "release:major": "npm version major --no-git-tag-version && npm run package",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0",
+    "undici": "^5.28.4",
+    "vsce": "^2.11.0"
+  }
+}

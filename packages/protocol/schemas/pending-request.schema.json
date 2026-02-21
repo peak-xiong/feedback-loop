@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://feedback-loop.dev/schemas/pending-request.schema.json",
+  "title": "PendingRequest",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Request UUID"
+    },
+    "project": {
+      "type": "string",
+      "description": "Project path used for window ownership matching"
+    },
+    "summary": {
+      "type": "string",
+      "description": "AI work summary shown in sidebar/dialog"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "agentId": {
+      "type": "string"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

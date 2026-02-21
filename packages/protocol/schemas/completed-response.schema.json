@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://feedback-loop.dev/schemas/completed-response.schema.json",
+  "title": "CompletedResponse",
+  "type": "object",
+  "required": ["requestId", "content", "timestamp"],
+  "properties": {
+    "requestId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "model": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "agentId": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}
