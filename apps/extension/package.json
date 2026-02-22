@@ -2,9 +2,10 @@
   "name": "io-util",
   "displayName": "IO Util",
   "description": "Development session management utilities",
-  "version": "1.3.16",
+  "version": "1.3.18",
   "license": "MIT",
   "publisher": "peak-xiong",
+  "icon": "images/icon.png",
   "author": {
     "name": "Peak Xiong",
     "url": "https://github.com/peak-xiong"
@@ -83,8 +84,9 @@
     "clean": "rm -rf dist",
     "compile": "npm run clean && tsc -p ./ && mkdir -p dist/views/dialog dist/views/sidebar dist/views/shared && cp src/views/dialog/checkpoint.html dist/views/dialog/ && cp src/views/sidebar/sidebar.html dist/views/sidebar/ && cp src/views/shared/design-system.css dist/views/shared/",
     "watch": "tsc -watch -p ./",
-    "package": "npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/io-util.vsix",
-    "release": "npm version patch --no-git-tag-version && npm run package",
+    "bump": "npm version patch --no-git-tag-version",
+    "package": "npm run bump && npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/io-util.vsix",
+    "release": "npm run package",
     "release:minor": "npm version minor --no-git-tag-version && npm run package",
     "release:major": "npm version major --no-git-tag-version && npm run package",
     "lint": "eslint src --ext ts"
