@@ -1,16 +1,33 @@
 /**
- * Session Checkpoint Dialog Handler
+ * Feedback dialog handler
  */
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
 import { AskRequest } from "../../types";
 import { escapeHtml, saveBase64Image } from "../../utils";
-import { REQUEST_TIMEOUT } from "../../core/config";
+import { COMPLETED_DIR, PENDING_DIR, REQUEST_TIMEOUT } from "../../core/config";
 import { submitFeedback } from "../../polling";
 
 let lastPendingRequest: AskRequest | null = null;
 let lastPendingRequestTime: number = 0;
+const isZh = vscode.env.language.toLowerCase().startsWith("zh");
+
+function t(zh: string, en: string): string {
+  return isZh ? zh : en;
+}
+
+function hasRequestLeftPending(requestId: string): boolean {
+  if (!requestId || !PENDING_DIR || !COMPLETED_DIR) {
+    return false;
+  }
+
+  const pendingFile = path.join(PENDING_DIR, `${requestId}.json`);
+  const completedFile = path.join(COMPLETED_DIR, `${requestId}.json`);
+
+  // 已完成或已从 pending 移除，视为会话状态变更，自动关闭收件箱
+  return fs.existsSync(completedFile) || !fs.existsSync(pendingFile);
+}
 
 export function setLastPendingRequest(request: AskRequest | null): void {
   lastPendingRequest = request;
@@ -27,9 +44,9 @@ export function getLastPendingRequest(): AskRequest | null {
 }
 
 /**
- * Show the Session Checkpoint dialog
+ * Show feedback inbox dialog
  */
-export async function showSessionCheckpointDialog(
+export async function showSessionInboxDialog(
   request: AskRequest,
   extensionUri: vscode.Uri,
 ): Promise<void> {
@@ -38,14 +55,15 @@ export async function showSessionCheckpointDialog(
   let panel: vscode.WebviewPanel;
   try {
     panel = vscode.window.createWebviewPanel(
-      "ioUtil",
-      "Session Checkpoint",
+      "feedbackLoop",
+      t("Feedback Loop 收件箱", "Feedback Loop Inbox"),
       vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
       },
     );
+    panel.iconPath = vscode.Uri.joinPath(extensionUri, "images", "icon.svg");
 
     panel.webview.html = getWebviewContent(request, extensionUri, panel.webview);
   } catch (err) {
@@ -57,12 +75,23 @@ export async function showSessionCheckpointDialog(
       // Ignore send errors
     }
     vscode.window.showErrorMessage(
-      `Feedback Loop: Failed to create panel - ${err instanceof Error ? err.message : "Unknown error"}`,
+      t(
+        `Feedback Loop: 打开面板失败 - ${err instanceof Error ? err.message : "未知错误"}`,
+        `Feedback Loop: Failed to create panel - ${err instanceof Error ? err.message : "Unknown error"}`,
+      ),
     );
     return;
   }
 
   let responseSent = false;
+  const statusWatcher = setInterval(() => {
+    if (responseSent) return;
+    if (!panel.visible) return;
+    if (hasRequestLeftPending(request.requestId)) {
+      responseSent = true;
+      panel.dispose();
+    }
+  }, 1000);
 
   panel.webview.onDidReceiveMessage(
     async (message) => {
@@ -84,8 +113,8 @@ export async function showSessionCheckpointDialog(
               if (imagePath) {
                 // 替换 base64 为文件路径
                 finalText = finalText.replace(
-                  /\[图片已附加\][\s\S]*$/,
-                  `[图片已附加]\n${imagePath}`,
+                  /(\[图片已附加\]|\[Image attached\])[\s\S]*$/,
+                  `${t("[图片已附加]", "[Image attached]")}\n${imagePath}`,
                 );
               }
             }
@@ -104,7 +133,10 @@ export async function showSessionCheckpointDialog(
               error: error instanceof Error ? error.message : "Unknown error",
             });
             vscode.window.showErrorMessage(
-              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
+              t(
+                `发送失败：${error instanceof Error ? error.message : "未知错误"}。你可以重试。`,
+                `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
+              ),
             );
           }
           break;
@@ -120,7 +152,10 @@ export async function showSessionCheckpointDialog(
               error: error instanceof Error ? error.message : "Unknown error",
             });
             vscode.window.showErrorMessage(
-              `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
+              t(
+                `发送失败：${error instanceof Error ? error.message : "未知错误"}。你可以重试。`,
+                `Failed to send response: ${error instanceof Error ? error.message : "Unknown error"}. You can try again.`,
+              ),
             );
           }
           break;
@@ -140,6 +175,7 @@ export async function showSessionCheckpointDialog(
   );
 
   panel.onDidDispose(async () => {
+    clearInterval(statusWatcher);
     if (lastPendingRequest?.requestId === request.requestId) {
       setLastPendingRequest(null);
     }
@@ -161,12 +197,15 @@ function getWebviewContent(
   const cssUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "dist", "views", "shared", "design-system.css")
   );
+  const logoUri = webview.asWebviewUri(
+    vscode.Uri.joinPath(extensionUri, "images", "icon.svg"),
+  );
   const templatePath = path.join(
     extensionUri.fsPath,
     "dist",
     "views",
     "dialog",
-    "checkpoint.html",
+    "inbox.html",
   );
   const options = request.options || [];
 
@@ -174,7 +213,7 @@ function getWebviewContent(
     options.length > 0
       ? `
     <div class="options-section">
-      <div class="options-label">Quick options:</div>
+      <div class="options-label">${t("快捷选项:", "Quick options:")}</div>
       <div class="options-buttons">
         ${options.map((opt) => `<button class="option-btn" data-option="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`).join("")}
       </div>
@@ -188,47 +227,64 @@ function getWebviewContent(
   if (request.context) {
     const projectName = request.context.split(/[/\\]/).pop() || request.context;
     metaParts.push(
-      `<span class="meta-pill"><span class="material-symbols-outlined" style="font-size:14px">folder</span> <span class="meta-val">${escapeHtml(projectName)}</span></span>`,
+      `<span class="meta-pill">${t("项目", "Project")} <span class="meta-val">${escapeHtml(projectName)}</span></span>`,
     );
   }
   if (request.model) {
     metaParts.push(
-      `<span class="meta-pill">Model <span class="meta-val">${escapeHtml(request.model)}</span></span>`,
+      `<span class="meta-pill">${t("模型", "Model")} <span class="meta-val">${escapeHtml(request.model)}</span></span>`,
     );
   }
   if (request.title) {
     metaParts.push(
-      `<span class="meta-pill">Title <span class="meta-val green">${escapeHtml(request.title)}</span></span>`,
+      `<span class="meta-pill">${t("标题", "Title")} <span class="meta-val green">${escapeHtml(request.title)}</span></span>`,
     );
   }
   if (request.agentId) {
     metaParts.push(
-      `<span class="meta-pill">Agent <span class="meta-val">${escapeHtml(request.agentId)}</span></span>`,
+      `<span class="meta-pill">${t("代理", "Agent")} <span class="meta-val">${escapeHtml(request.agentId)}</span></span>`,
     );
   }
   const metaInfoHtml = metaParts.length > 0 ? metaParts.join("") : "";
 
-  const headerTitle = request.title || "Session Checkpoint";
+  const headerTitle = request.title || t("反馈收件箱", "Feedback Loop Inbox");
   const headerContextHtml = request.context
-    ? `<div class="header-context"><span class="material-symbols-outlined" style="font-size:14px">push_pin</span> ${escapeHtml(request.context)}</div>`
+    ? `<div class="header-context">${escapeHtml(request.context)}</div>`
     : "";
 
-  try {
-    let template = fs.readFileSync(templatePath, "utf-8");
-    return template
-      .replace(/\{\{REASON\}\}/g, escapeHtml(request.reason))
-      .replace(/\{\{REQUEST_ID\}\}/g, escapeHtml(request.requestId))
-      .replace(/\{\{OPTIONS_HTML\}\}/g, optionsHtml)
-      .replace(/\{\{META_INFO_HTML\}\}/g, metaInfoHtml)
-      .replace(/\{\{HEADER_TITLE\}\}/g, headerTitle)
-      .replace(/\{\{HEADER_CONTEXT_HTML\}\}/g, headerContextHtml)
-      .replace(/\{\{CSS_URI\}\}/g, cssUri.toString());
-  } catch {
-    // Fallback inline template
-    return `<!DOCTYPE html><html><body>
-      <h1>Session Checkpoint</h1>
-      <p>${escapeHtml(request.reason)}</p>
-      <p>Request ID: ${escapeHtml(request.requestId)}</p>
-    </body></html>`;
-  }
+  const template = fs.readFileSync(templatePath, "utf-8");
+  return template
+    .replace(/\{\{REASON\}\}/g, escapeHtml(request.reason))
+    .replace(/\{\{REQUEST_ID\}\}/g, escapeHtml(request.requestId))
+    .replace(/\{\{OPTIONS_HTML\}\}/g, optionsHtml)
+    .replace(/\{\{META_INFO_HTML\}\}/g, metaInfoHtml)
+    .replace(/\{\{HEADER_TITLE\}\}/g, headerTitle)
+    .replace(/\{\{HEADER_CONTEXT_HTML\}\}/g, headerContextHtml)
+    .replace(/\{\{LOGO_URI\}\}/g, logoUri.toString())
+    .replace(/\{\{CSS_URI\}\}/g, cssUri.toString())
+    .replace(/\{\{SECTION_SUMMARY\}\}/g, t("摘要", "Summary"))
+    .replace(/\{\{SECTION_RESPONSE\}\}/g, t("回复", "Response"))
+    .replace(/\{\{LABEL_YOUR_RESPONSE\}\}/g, t("你的回复", "Your response"))
+    .replace(
+      /\{\{LABEL_RESPONSE_HINT\}\}/g,
+      t("(或点击上面的快捷选项)", "(or pick an option above)"),
+    )
+    .replace(
+      /\{\{LABEL_PLACEHOLDER\}\}/g,
+      t("请输入你的指令...", "Type your instructions here..."),
+    )
+    .replace(/\{\{LABEL_ATTACH_IMAGE\}\}/g, t("附加图片", "Attach image"))
+    .replace(
+      /\{\{LABEL_DROP_IMAGE\}\}/g,
+      t("Ctrl+V 粘贴或拖拽图片到此处", "Ctrl+V to paste or drag image here"),
+    )
+    .replace(/\{\{LABEL_REMOVE\}\}/g, t("移除", "Remove"))
+    .replace(/\{\{LABEL_SEND\}\}/g, t("发送", "Send"))
+    .replace(/\{\{LABEL_END\}\}/g, t("结束", "End"))
+    .replace(/\{\{LABEL_SHORTCUT_SEND\}\}/g, t("发送", "to send"))
+    .replace(/\{\{LABEL_COPIED\}\}/g, t("已复制!", "Copied!"))
+    .replace(
+      /\{\{IMAGE_ATTACHED_MARKER\}\}/g,
+      t("[图片已附加]", "[Image attached]"),
+    );
 }

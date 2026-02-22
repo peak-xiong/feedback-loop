@@ -2,7 +2,7 @@
   "name": "feedback-loop",
   "displayName": "Feedback Loop",
   "description": "Keep AI sessions flowing: collect next-step feedback via CLI ↔ IDE dialog.",
-  "version": "1.3.20",
+  "version": "1.3.53",
   "license": "MIT",
   "publisher": "peak-xiong",
   "icon": "images/icon.png",
@@ -25,53 +25,105 @@
     "session",
     "workflow",
     "productivity",
-    "checkpoint"
+    "inbox"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:feedbackLoop.statusView",
+    "onCommand:feedbackLoop.showStatus",
+    "onCommand:feedbackLoop.restart",
+    "onCommand:feedbackLoop.openPanel",
+    "onCommand:feedbackLoop.refreshSessions",
+    "onCommand:feedbackLoop.reopenRequest",
+    "onCommand:feedbackLoop.deleteRequest"
   ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ioUtil.showStatus",
+        "command": "feedbackLoop.showStatus",
         "title": "Feedback Loop: Show Status",
         "icon": "$(info)"
       },
       {
-        "command": "ioUtil.restart",
+        "command": "feedbackLoop.restart",
         "title": "Feedback Loop: Restart",
         "icon": "$(refresh)"
       },
       {
-        "command": "ioUtil.openPanel",
+        "command": "feedbackLoop.openPanel",
         "title": "Feedback Loop: Open Panel",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "feedbackLoop.refreshSessions",
+        "title": "Feedback Loop: Refresh Sessions",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "feedbackLoop.reopenRequest",
+        "title": "Feedback Loop: Reopen Request",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "feedbackLoop.deleteRequest",
+        "title": "Feedback Loop: Delete Request",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ioUtil",
+          "id": "feedbackLoop",
           "title": "Feedback Loop",
-          "icon": "$(comment-discussion)"
+          "icon": "images/icon.svg"
         }
       ]
     },
     "views": {
-      "ioUtil": [
+      "feedbackLoop": [
         {
-          "type": "webview",
-          "id": "ioUtil.statusView",
-          "name": "Status Panel",
-          "icon": "$(comment-discussion)"
+          "id": "feedbackLoop.statusView",
+          "name": "Feedback Loop",
+          "icon": "images/icon.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "feedbackLoop.refreshSessions",
+          "when": "view == feedbackLoop.statusView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "feedbackLoop.restart",
+          "when": "view == feedbackLoop.statusView",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "feedbackLoop.reopenRequest",
+          "when": "view == feedbackLoop.statusView && viewItem == requestPending",
+          "group": "inline@1"
+        },
+        {
+          "command": "feedbackLoop.deleteRequest",
+          "when": "view == feedbackLoop.statusView && viewItem == requestPending",
+          "group": "inline@2"
+        },
+        {
+          "command": "feedbackLoop.deleteRequest",
+          "when": "view == feedbackLoop.statusView && viewItem == requestCompleted",
+          "group": "inline@2"
         }
       ]
     },
     "configuration": {
       "title": "Feedback Loop",
       "properties": {
-        "ioUtil.autoStart": {
+        "feedbackLoop.autoStart": {
           "type": "boolean",
           "default": true,
           "description": "Automatically start the server when IDE opens"
@@ -82,10 +134,11 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "clean": "rm -rf dist",
-    "compile": "npm run clean && tsc -p ./ && mkdir -p dist/views/dialog dist/views/sidebar dist/views/shared && cp src/views/dialog/checkpoint.html dist/views/dialog/ && cp src/views/sidebar/sidebar.html dist/views/sidebar/ && cp src/views/shared/design-system.css dist/views/shared/",
+    "compile": "npm run clean && tsc -p ./ && mkdir -p dist/views/dialog dist/views/shared && cp src/views/dialog/inbox.html dist/views/dialog/ && cp src/views/shared/design-system.css dist/views/shared/",
     "watch": "tsc -watch -p ./",
     "bump": "npm version patch --no-git-tag-version",
-    "package": "npm run bump && npm run compile && vsce package -o dist/ && mv dist/*.vsix dist/feedback-loop.vsix",
+    "render:icon": "bash scripts/render-icon.sh",
+    "package": "npm run bump && npm run compile && vsce package -o dist/feedback-loop.vsix",
     "release": "npm run package",
     "release:minor": "npm version minor --no-git-tag-version && npm run package",
     "release:major": "npm version major --no-git-tag-version && npm run package",

@@ -2,65 +2,53 @@
  * Feedback Loop Extension - Entry Point
  */
 import * as vscode from "vscode";
-import * as path from "path";
 import { StatusViewProvider } from "../views/sidebar/provider";
 import { startServer, stopServer, isServerRunning } from "../polling";
+import { getPrimaryWorkspaceRoot, setProjectRoot } from "./config";
+import { ensureGitignore } from "../utils/gitignore";
 import {
-  showSessionCheckpointDialog,
+  showSessionInboxDialog,
   getLastPendingRequest,
 } from "../views/dialog/handler";
-import { AskRequest, PendingRequest } from "../types";
+import { AskRequest } from "../types";
 
 let statusBarItem: vscode.StatusBarItem;
 let statusViewProvider: StatusViewProvider;
 let extensionUri: vscode.Uri;
+const isZh = vscode.env.language.toLowerCase().startsWith("zh");
 
-function normalizeFsPath(input: string): string {
-  return path
-    .resolve(input)
-    .replace(/\\/g, "/")
-    .replace(/\/+$/, "")
-    .toLowerCase();
+function t(zh: string, en: string): string {
+  return isZh ? zh : en;
 }
 
-function shouldHandleRequestInCurrentWindow(request: PendingRequest): boolean {
-  // 只在当前聚焦窗口处理，避免后台窗口抢占弹窗
-  if (!vscode.window.state.focused) {
-    return false;
+function extractRequestId(input: unknown): string | null {
+  if (typeof input === "string" && input.trim()) {
+    return input.trim();
   }
-
-  const requestProject = request.project?.trim();
-  if (!requestProject) {
-    return false;
+  if (
+    input &&
+    typeof input === "object" &&
+    "id" in input &&
+    typeof (input as { id?: unknown }).id === "string"
+  ) {
+    const rawId = ((input as { id: string }).id || "").trim();
+    if (rawId.startsWith("request-")) {
+      return rawId.slice("request-".length);
+    }
+    return rawId || null;
   }
-
-  const normalizedRequestProject = normalizeFsPath(requestProject);
-  const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
-  if (workspaceFolders.length === 0) {
-    return false;
-  }
-
-  const workspaceRoots = workspaceFolders.map((folder) =>
-    normalizeFsPath(folder.uri.fsPath),
-  );
-
-  return workspaceRoots.some(
-    (root) =>
-      normalizedRequestProject === root ||
-      normalizedRequestProject.startsWith(`${root}/`) ||
-      root.startsWith(`${normalizedRequestProject}/`),
-  );
+  return null;
 }
 
 function updateStatusBar(running: boolean, _port?: number): void {
   if (running) {
     statusBarItem.text = "$(check) Loop";
-    statusBarItem.tooltip = "Feedback Loop: 监听中";
+    statusBarItem.tooltip = t("Feedback Loop: 监听中", "Feedback Loop: Running");
     statusBarItem.backgroundColor = undefined;
     statusViewProvider?.updateStatus(true, 0);
   } else {
     statusBarItem.text = "$(x) Loop";
-    statusBarItem.tooltip = "Feedback Loop: 已停止";
+    statusBarItem.tooltip = t("Feedback Loop: 已停止", "Feedback Loop: Stopped");
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground",
     );
@@ -69,61 +57,103 @@ function updateStatusBar(running: boolean, _port?: number): void {
 }
 
 async function handleRequest(request: AskRequest): Promise<void> {
-  await showSessionCheckpointDialog(request, extensionUri);
+  await showSessionInboxDialog(request, extensionUri);
   statusViewProvider?.incrementRequestCount();
 }
 
 export function activate(context: vscode.ExtensionContext): void {
   console.log("Feedback Loop extension is now active");
   extensionUri = context.extensionUri;
+  const workspaceRoot = getPrimaryWorkspaceRoot();
+  if (workspaceRoot) {
+    setProjectRoot(workspaceRoot);
+    ensureGitignore(workspaceRoot).catch(() => {});
+  }
 
-  statusViewProvider = new StatusViewProvider(context.extensionUri);
+  statusViewProvider = new StatusViewProvider();
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
+    vscode.window.registerTreeDataProvider(
       StatusViewProvider.viewType,
       statusViewProvider,
     ),
   );
+  statusViewProvider.refreshSessions();
 
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
   );
-  statusBarItem.command = "ioUtil.showStatus";
+  statusBarItem.command = "feedbackLoop.showStatus";
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
-  const config = vscode.workspace.getConfiguration("ioUtil");
+  const config = vscode.workspace.getConfiguration("feedbackLoop");
   const autoStart = config.get<boolean>("autoStart", true);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("ioUtil.showStatus", () => {
+    vscode.commands.registerCommand("feedbackLoop.showStatus", () => {
       vscode.window.showInformationMessage(
-        `Feedback Loop: ${isServerRunning() ? "Polling active" : "Stopped"}`,
+        isServerRunning()
+          ? t("Feedback Loop: 监听中", "Feedback Loop: Polling active")
+          : t("Feedback Loop: 已停止", "Feedback Loop: Stopped"),
       );
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("ioUtil.restart", () => {
-      startServer(
-        handleRequest,
-        updateStatusBar,
-        1000,
-        shouldHandleRequestInCurrentWindow,
+    vscode.commands.registerCommand("feedbackLoop.restart", () => {
+      const currentWorkspaceRoot = getPrimaryWorkspaceRoot();
+      if (!currentWorkspaceRoot) {
+        vscode.window.showWarningMessage(
+          t(
+            "Feedback Loop: 请先打开项目目录再启动。",
+            "Feedback Loop: Open a project folder first.",
+          ),
+        );
+        return;
+      }
+      setProjectRoot(currentWorkspaceRoot);
+      startServer(handleRequest, updateStatusBar, 1000);
+      statusViewProvider.refreshSessions();
+      vscode.window.showInformationMessage(
+        t("Feedback Loop: 已重启", "Feedback Loop restarted"),
       );
-      vscode.window.showInformationMessage(`Feedback Loop restarted`);
     }),
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("ioUtil.openPanel", () => {
+    vscode.commands.registerCommand("feedbackLoop.refreshSessions", () => {
+      statusViewProvider.refreshSessions();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("feedbackLoop.reopenRequest", (arg: unknown) => {
+      const requestId = extractRequestId(arg);
+      if (!requestId) return;
+      statusViewProvider.reopenRequest(requestId);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("feedbackLoop.deleteRequest", (arg: unknown) => {
+      const requestId = extractRequestId(arg);
+      if (!requestId) return;
+      statusViewProvider.deleteRequest(requestId);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("feedbackLoop.openPanel", () => {
       const pendingRequest = getLastPendingRequest();
       if (pendingRequest) {
-        showSessionCheckpointDialog(pendingRequest, extensionUri);
+        showSessionInboxDialog(pendingRequest, extensionUri);
       } else {
         vscode.window.showInformationMessage(
-          "Feedback Loop: No pending requests",
+          t(
+            "Feedback Loop: 当前没有待处理请求",
+            "Feedback Loop: No pending requests",
+          ),
         );
       }
     }),
@@ -131,20 +161,27 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 用于从 Sessions 列表重新打开特定请求
   context.subscriptions.push(
-    vscode.commands.registerCommand("ioUtil.openPanelWithRequest", (request: AskRequest) => {
+    vscode.commands.registerCommand("feedbackLoop.openPanelWithRequest", (request: AskRequest) => {
       if (request) {
-        showSessionCheckpointDialog(request, extensionUri);
+        showSessionInboxDialog(request, extensionUri);
       }
     }),
   );
 
   if (autoStart) {
-    startServer(
-      handleRequest,
-      updateStatusBar,
-      1000,
-      shouldHandleRequestInCurrentWindow,
-    );
+    if (!workspaceRoot) {
+      updateStatusBar(false);
+      vscode.window.showWarningMessage(
+        t(
+          "Feedback Loop: 当前窗口未打开项目目录，未启动监听。",
+          "Feedback Loop: No project folder opened, listener not started.",
+        ),
+      );
+      return;
+    }
+    setProjectRoot(workspaceRoot);
+    startServer(handleRequest, updateStatusBar, 1000);
+    statusViewProvider.refreshSessions();
   } else {
     updateStatusBar(false);
   }

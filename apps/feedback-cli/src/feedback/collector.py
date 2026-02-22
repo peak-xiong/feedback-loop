@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime
 
-from .config import PENDING_DIR, COMPLETED_DIR, DEFAULT_TIMEOUT
+from .config import DEFAULT_TIMEOUT, get_runtime_dirs
 
 
 @dataclass
@@ -52,7 +52,8 @@ class FeedbackCollector:
         options: Optional[list] = None,
         timeout: Optional[int] = None,
     ):
-        self.project = project or str(Path.cwd())
+        self._dirs = get_runtime_dirs(project)
+        self.project = str(self._dirs["project_root"])
         self.summary = summary
         self.session_id = session_id
         self.model = model
@@ -64,8 +65,8 @@ class FeedbackCollector:
 
     def _ensure_dirs(self) -> None:
         """确保目录存在"""
-        PENDING_DIR.mkdir(parents=True, exist_ok=True)
-        COMPLETED_DIR.mkdir(parents=True, exist_ok=True)
+        self._dirs["pending_dir"].mkdir(parents=True, exist_ok=True)
+        self._dirs["completed_dir"].mkdir(parents=True, exist_ok=True)
 
     def collect(self) -> FeedbackResult:
         """收集反馈（阻塞等待）"""
@@ -96,7 +97,7 @@ class FeedbackCollector:
 
     def _write_request(self) -> None:
         """写入请求文件"""
-        request_file = PENDING_DIR / f"{self.request_id}.json"
+        request_file = self._dirs["pending_dir"] / f"{self.request_id}.json"
         request_data = {
             "id": self.request_id,
             "project": self.project,
@@ -114,7 +115,7 @@ class FeedbackCollector:
 
     def _wait_for_response(self) -> Optional[dict]:
         """轮询等待响应"""
-        response_file = COMPLETED_DIR / f"{self.request_id}.json"
+        response_file = self._dirs["completed_dir"] / f"{self.request_id}.json"
         poll_interval = 0.5
         start_time = time.time()
 
@@ -137,8 +138,8 @@ class FeedbackCollector:
     def _cleanup(self) -> None:
         """清理文件"""
         for file in [
-            PENDING_DIR / f"{self.request_id}.json",
-            COMPLETED_DIR / f"{self.request_id}.json",
+            self._dirs["pending_dir"] / f"{self.request_id}.json",
+            self._dirs["completed_dir"] / f"{self.request_id}.json",
         ]:
             try:
                 file.unlink(missing_ok=True)

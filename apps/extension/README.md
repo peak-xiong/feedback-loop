@@ -42,17 +42,25 @@ windsurf --install-extension dist/feedback-loop.vsix --force
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `ioUtil.autoStart` | true | 自动启动监听 |
+| `feedbackLoop.autoStart` | true | 自动启动监听 |
 
 ## 工作原理
 
-扩展监听 `~/.feedback-loop/requests/pending/` 目录，当 CLI 写入请求文件后：
+扩展监听当前项目目录下 `.windsurf/feedback-loop/requests/pending/`，当 CLI 写入请求文件后：
 
 1. 扩展检测到新文件
 2. 弹出对话框请求用户输入
-3. 用户提交后写入响应到 `~/.feedback-loop/requests/completed/`
+3. 用户提交后写入响应到 `.windsurf/feedback-loop/requests/completed/`
 4. 删除 pending 中的请求文件
 
 ## License
 
 MIT License
+
+## Logo Attribution
+
+- Logo source: [Flaticon - Metaverse icon](https://www.flaticon.com/free-icon/metaverse_11171244?term=infinite&page=1&position=66&origin=search&related_id=11171244)
+- Local assets:
+  - `apps/extension/images/metaverse.png` (original design file)
+  - `apps/extension/images/metaverse.svg` (vectorized source)
+  - `apps/extension/images/icon.png` / `apps/extension/images/icon.svg` / `apps/extension/images/activitybar-icon.svg` (extension runtime assets)

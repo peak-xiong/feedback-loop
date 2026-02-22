@@ -7,6 +7,4 @@ export {
   isPollingActive as isServerRunning,
   submitFeedback,
 } from "./feedbackClient";
-
-// FeedbackMetadata 已移至 types/index.ts，从此处重导出保持兼容
 export type { FeedbackMetadata } from "../types";

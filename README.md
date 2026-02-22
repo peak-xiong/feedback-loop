@@ -19,13 +19,13 @@ feedback-loop/
 ```text
 模型执行 feedback CLI
     ↓
-CLI 写入 ~/.feedback-loop/requests/pending/{id}.json
+CLI 写入 <project>/.windsurf/feedback-loop/requests/pending/{id}.json
     ↓
 扩展轮询并在 IDE 内弹窗
     ↓
 用户提交反馈
     ↓
-扩展写入 ~/.feedback-loop/requests/completed/{id}.json
+扩展写入 <project>/.windsurf/feedback-loop/requests/completed/{id}.json
     ↓
 CLI 读取响应并返回给模型继续执行
 ```
@@ -66,8 +66,8 @@ uv run feedback -p "项目目录" -s "工作摘要" -m "模型名称" -t "对话
 ```
 
 ## 关键路径
-- `~/.feedback-loop/requests/pending/`：CLI 请求
-- `~/.feedback-loop/requests/completed/`：扩展响应
+- `<project>/.windsurf/feedback-loop/requests/pending/`：CLI 请求
+- `<project>/.windsurf/feedback-loop/requests/completed/`：扩展响应
 - `docs/prompts/templates/`：规则模板
 - `packages/protocol/`：协议规范
 
@@ -76,3 +76,7 @@ uv run feedback -p "项目目录" -s "工作摘要" -m "模型名称" -t "对话
 # 本地 CI 检查（协议 + extension compile + python import）
 make ci-check
 ```
+
+## Logo Attribution
+- Source: [Flaticon - Metaverse icon](https://www.flaticon.com/free-icon/metaverse_11171244?term=infinite&page=1&position=66&origin=search&related_id=11171244)
+- Local file: `apps/extension/images/metaverse.png`
