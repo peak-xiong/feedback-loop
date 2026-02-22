@@ -1,4 +1,4 @@
-# IO Util Extension
+# Feedback Loop Extension
 
 VS Code/Windsurf 扩展，提供会话检查点弹窗界面。
 
@@ -18,25 +18,25 @@ VS Code/Windsurf 扩展，提供会话检查点弹窗界面。
 npm install && npm run release
 
 # VSCode
-code --install-extension dist/io-util.vsix --force
+code --install-extension dist/feedback-loop.vsix --force
 
 # Windsurf
-windsurf --install-extension dist/io-util.vsix --force
+windsurf --install-extension dist/feedback-loop.vsix --force
 ```
 
 ### 方式 2: 手动安装
 
 1. `Ctrl+Shift+P` → `Extensions: Install from VSIX`
-2. 选择 `dist/io-util.vsix`
+2. 选择 `dist/feedback-loop.vsix`
 3. 重新加载窗口: `Developer: Reload Window`
 
 ## 命令
 
 | 命令 | 说明 |
 |------|------|
-| `IO Util: Open Panel` | 打开弹窗 |
-| `IO Util: Show Status` | 查看状态 |
-| `IO Util: Restart` | 重启服务 |
+| `Feedback Loop: Open Panel` | 打开弹窗 |
+| `Feedback Loop: Show Status` | 查看状态 |
+| `Feedback Loop: Restart` | 重启服务 |
 
 ## 配置
 

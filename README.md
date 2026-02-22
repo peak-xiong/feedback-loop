@@ -42,9 +42,9 @@ npm install
 npm run package
 
 # 3) 安装扩展
-code --install-extension dist/io-util.vsix --force
+code --install-extension dist/feedback-loop.vsix --force
 # 或 Windsurf
-/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf --install-extension dist/io-util.vsix --force
+/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf --install-extension dist/feedback-loop.vsix --force
 ```
 
 ## 统一命令入口

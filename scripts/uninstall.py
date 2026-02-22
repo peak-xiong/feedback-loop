@@ -34,13 +34,15 @@ def uninstall_extension() -> None:
         print("[警告] 未找到 windsurf/code CLI，跳过自动卸载扩展")
         return
     try:
-        subprocess.run(
-            [cli, "--uninstall-extension", "peak-xiong.io-util", "--force"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        print("[OK] 已执行扩展卸载命令: peak-xiong.io-util")
+        # 卸载旧/新两个扩展 ID（忽略失败）
+        for ext in ("peak-xiong.io-util", "peak-xiong.feedback-loop"):
+            subprocess.run(
+                [cli, "--uninstall-extension", ext, "--force"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            print(f"[OK] 已执行扩展卸载命令: {ext}")
     except Exception as e:
         print(f"[警告] 卸载扩展失败: {e}")
 

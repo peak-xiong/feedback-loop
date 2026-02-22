@@ -54,13 +54,13 @@ function shouldHandleRequestInCurrentWindow(request: PendingRequest): boolean {
 
 function updateStatusBar(running: boolean, _port?: number): void {
   if (running) {
-    statusBarItem.text = "$(check) IO";
-    statusBarItem.tooltip = "IO Util: 监听中";
+    statusBarItem.text = "$(check) Loop";
+    statusBarItem.tooltip = "Feedback Loop: 监听中";
     statusBarItem.backgroundColor = undefined;
     statusViewProvider?.updateStatus(true, 0);
   } else {
-    statusBarItem.text = "$(x) IO";
-    statusBarItem.tooltip = "IO Util: 已停止";
+    statusBarItem.text = "$(x) Loop";
+    statusBarItem.tooltip = "Feedback Loop: 已停止";
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       "statusBarItem.errorBackground",
     );

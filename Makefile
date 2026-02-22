@@ -27,7 +27,7 @@ package-ext:
 	cd apps/extension && npm run package
 
 install-ext:
-	code --install-extension apps/extension/dist/io-util.vsix --force
+	code --install-extension apps/extension/dist/feedback-loop.vsix --force
 
 install:
 	python3 scripts/install.py

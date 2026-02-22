@@ -81,7 +81,7 @@ def package_extension() -> bool:
 
 def install_extension() -> bool:
     print("[3/4] 安装扩展...")
-    vsix = extension_dir() / "dist" / "io-util.vsix"
+    vsix = extension_dir() / "dist" / "feedback-loop.vsix"
     if not vsix.exists():
         print(f"[错误] 未找到 VSIX: {vsix}")
         return False
