@@ -63,9 +63,27 @@ export function saveBase64Image(requestId: string, base64Data: string): string |
  */
 export function deleteSessionImages(requestId: string): void {
   try {
+    if (!IMAGES_DIR || !fs.existsSync(IMAGES_DIR)) {
+      return;
+    }
+
     const sessionImageDir = path.join(IMAGES_DIR, requestId);
     if (fs.existsSync(sessionImageDir)) {
       fs.rmSync(sessionImageDir, { recursive: true, force: true });
+    }
+
+    // 兼容历史版本：图片可能直接写在 images 根目录，按 requestId 前缀清理
+    const files = fs.readdirSync(IMAGES_DIR);
+    for (const file of files) {
+      if (!file.startsWith(requestId)) continue;
+      const p = path.join(IMAGES_DIR, file);
+      try {
+        if (fs.statSync(p).isFile()) {
+          fs.unlinkSync(p);
+        }
+      } catch {
+        // ignore
+      }
     }
   } catch (err) {
     console.error("Failed to delete session images:", err);

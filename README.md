@@ -55,8 +55,11 @@ make bootstrap
 # 打包扩展
 make package-ext
 
-# 一键安装（脚本）
+# 用户安装（CLI 全局 + extension）
 make install
+
+# 开发安装（本地依赖 + 自动部署更新）
+make install-dev
 ```
 
 ## CLI 用法

@@ -146,6 +146,19 @@ class FeedbackCollector:
         except Exception:
             pass
 
+        # 清理该请求关联的图片目录
+        image_dir = self._dirs["images_dir"] / self.request_id
+        try:
+            if image_dir.exists():
+                for p in image_dir.iterdir():
+                    try:
+                        p.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                image_dir.rmdir()
+        except Exception:
+            pass
+
     def _print_success(self) -> None:
         print("✅ 已收到反馈")
 

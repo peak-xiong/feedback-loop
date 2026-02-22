@@ -1,4 +1,4 @@
-.PHONY: help bootstrap deps-cli deps-ext build-ext package-ext install-ext install uninstall clean validate-protocol ci-check
+.PHONY: help bootstrap deps-cli deps-ext build-ext package-ext install-ext install install-dev install-user uninstall clean validate-protocol ci-check
 
 help:
 	@echo "Feedback Loop commands:"
@@ -6,7 +6,9 @@ help:
 	@echo "  make build-ext    - compile extension"
 	@echo "  make package-ext  - package VSIX"
 	@echo "  make install-ext  - install VSIX to editor CLI"
-	@echo "  make install      - run scripts/install.py"
+	@echo "  make install      - run user installer (CLI global + extension)"
+	@echo "  make install-user - run scripts/install_user.py"
+	@echo "  make install-dev  - run scripts/install_dev.py"
 	@echo "  make uninstall    - run scripts/uninstall.py"
 	@echo "  make validate-protocol - validate protocol schemas"
 	@echo "  make ci-check     - run local CI checks"
@@ -31,6 +33,12 @@ install-ext:
 
 install:
 	python3 scripts/install.py
+
+install-user:
+	python3 scripts/install_user.py
+
+install-dev:
+	python3 scripts/install_dev.py
 
 uninstall:
 	python3 scripts/uninstall.py

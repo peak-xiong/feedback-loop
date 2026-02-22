@@ -1,5 +1,5 @@
 # Feedback CLI（Python）
-`feedback` 是当前主链路中的请求发起端：它将请求写入 `<project>/.windsurf/feedback-loop/requests/pending/`，并阻塞等待扩展写入响应。
+`feedback` 是当前主链路中的请求发起端：它将请求写入 `<project>/.windsurf/feedback-loop/requests/{id}.json`（`status: pending`），并阻塞等待扩展回写同一文件。
 
 ## 安装
 ```bash

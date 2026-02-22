@@ -31,8 +31,10 @@ trigger: always_on
 ## 调用命令
 
 ```bash
-cd ~/Documents/Web3Projects/feedback-loop/apps/feedback-cli && uv run feedback -p "项目路径" -s "工作摘要" -m "模型名称" -t "对话标题" -o "继续,修改,完成"
+uv run --project ./apps/feedback-cli feedback -p "项目路径" -s "工作摘要" -m "模型名称" -t "对话标题" -o "继续,修改,完成"
 ```
+
+> 说明：使用仓库相对路径 `./apps/feedback-cli`，避免设备间绝对路径差异。
 
 ### 参数说明
 
