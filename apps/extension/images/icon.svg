@@ -1,0 +1,11 @@
+[38;2;131;148;150m   1[0m   [38;2;248;248;242m<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">[0m
+[38;2;131;148;150m   2[0m   [38;2;248;248;242m  <defs>[0m
+[38;2;131;148;150m   3[0m   [38;2;248;248;242m    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">[0m
+[38;2;131;148;150m   4[0m   [38;2;248;248;242m      <stop offset="0%" stop-color="#6366F1"/>[0m
+[38;2;131;148;150m   5[0m   [38;2;248;248;242m      <stop offset="100%" stop-color="#22D3EE"/>[0m
+[38;2;131;148;150m   6[0m   [38;2;248;248;242m    </linearGradient>[0m
+[38;2;131;148;150m   7[0m   [38;2;248;248;242m  </defs>[0m
+[38;2;131;148;150m   8[0m   [38;2;248;248;242m  <rect x="0" y="0" width="128" height="128" fill="none"/>[0m
+[38;2;131;148;150m   9[0m   [38;2;248;248;242m  <path d="M20 64 C 32 40, 56 40, 64 64 C 72 88, 96 88, 108 64" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>[0m
+[38;2;131;148;150m  10[0m   [38;2;248;248;242m  <path d="M108 64 C 96 40, 72 40, 64 64 C 56 88, 32 88, 20 64" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>[0m
+[38;2;131;148;150m  11[0m   [38;2;248;248;242m</svg>[0m
