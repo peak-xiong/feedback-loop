@@ -27,6 +27,7 @@ export interface FeedbackMetadata {
  */
 export interface PendingRequest {
   id: string;
+  status?: string;
   project?: string;
   summary?: string;
   createdAt?: string;
@@ -35,5 +36,7 @@ export interface PendingRequest {
   title?: string;
   agentId?: string;
   options?: string[];
-  _completed?: boolean; // 内部标记：是否已完成
+  content?: string;
+  images?: string[];
+  timestamp?: string;
 }

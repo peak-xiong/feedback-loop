@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { AskRequest } from "../../types";
 import { escapeHtml, saveBase64Image } from "../../utils";
-import { COMPLETED_DIR, PENDING_DIR, REQUEST_TIMEOUT } from "../../core/config";
+import { REQUESTS_DIR, REQUEST_TIMEOUT } from "../../core/config";
 import { submitFeedback } from "../../polling";
 
 let lastPendingRequest: AskRequest | null = null;
@@ -18,15 +18,20 @@ function t(zh: string, en: string): string {
 }
 
 function hasRequestLeftPending(requestId: string): boolean {
-  if (!requestId || !PENDING_DIR || !COMPLETED_DIR) {
+  if (!requestId || !REQUESTS_DIR) {
     return false;
   }
 
-  const pendingFile = path.join(PENDING_DIR, `${requestId}.json`);
-  const completedFile = path.join(COMPLETED_DIR, `${requestId}.json`);
-
-  // 已完成或已从 pending 移除，视为会话状态变更，自动关闭收件箱
-  return fs.existsSync(completedFile) || !fs.existsSync(pendingFile);
+  const requestFile = path.join(REQUESTS_DIR, `${requestId}.json`);
+  if (!fs.existsSync(requestFile)) {
+    return true;
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(requestFile, "utf-8"));
+    return (data.status || "pending") !== "pending";
+  } catch {
+    return false;
+  }
 }
 
 export function setLastPendingRequest(request: AskRequest | null): void {

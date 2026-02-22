@@ -22,7 +22,5 @@ def get_runtime_dirs(project: str = "") -> dict[str, Path]:
         "project_root": root,
         "base_dir": base_dir,
         "requests_dir": requests_dir,
-        "pending_dir": requests_dir / "pending",
-        "completed_dir": requests_dir / "completed",
         "images_dir": requests_dir / "images",
     }

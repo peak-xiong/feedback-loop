@@ -19,15 +19,15 @@ feedback-loop/
 ```text
 模型执行 feedback CLI
     ↓
-CLI 写入 <project>/.windsurf/feedback-loop/requests/pending/{id}.json
+CLI 写入 <project>/.windsurf/feedback-loop/requests/{id}.json
     ↓
 扩展轮询并在 IDE 内弹窗
     ↓
 用户提交反馈
     ↓
-扩展写入 <project>/.windsurf/feedback-loop/requests/completed/{id}.json
+扩展回写同一个请求文件（`status != pending`）
     ↓
-CLI 读取响应并返回给模型继续执行
+CLI 读取后删除该请求文件并返回给模型继续执行
 ```
 
 ## 5 分钟上手
@@ -66,8 +66,7 @@ uv run feedback -p "项目目录" -s "工作摘要" -m "模型名称" -t "对话
 ```
 
 ## 关键路径
-- `<project>/.windsurf/feedback-loop/requests/pending/`：CLI 请求
-- `<project>/.windsurf/feedback-loop/requests/completed/`：扩展响应
+- `<project>/.windsurf/feedback-loop/requests/`：请求与响应单目录
 - `docs/prompts/templates/`：规则模板
 - `packages/protocol/`：协议规范
 

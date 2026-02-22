@@ -4,7 +4,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { AskRequest, FeedbackMetadata, PendingRequest } from "../types";
-import { PENDING_DIR, COMPLETED_DIR } from "../core/config";
+import { REQUESTS_DIR } from "../core/config";
 
 let watchInterval: NodeJS.Timeout | null = null;
 let isPolling = false;
@@ -17,14 +17,11 @@ const processedRequests = new Set<string>();
  * 确保目录存在
  */
 function ensureDirs(): void {
-  if (!PENDING_DIR || !COMPLETED_DIR) {
+  if (!REQUESTS_DIR) {
     throw new Error("Project root is not initialized");
   }
-  if (!fs.existsSync(PENDING_DIR)) {
-    fs.mkdirSync(PENDING_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(COMPLETED_DIR)) {
-    fs.mkdirSync(COMPLETED_DIR, { recursive: true });
+  if (!fs.existsSync(REQUESTS_DIR)) {
+    fs.mkdirSync(REQUESTS_DIR, { recursive: true });
   }
 }
 
@@ -33,18 +30,19 @@ function ensureDirs(): void {
  */
 function getPendingRequests(): PendingRequest[] {
   ensureDirs();
-  const requests: PendingRequest[] = [];
+    const requests: PendingRequest[] = [];
 
   try {
-    const files = fs.readdirSync(PENDING_DIR);
+    const files = fs.readdirSync(REQUESTS_DIR);
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
 
-      const filePath = path.join(PENDING_DIR, file);
+      const filePath = path.join(REQUESTS_DIR, file);
       try {
         const content = fs.readFileSync(filePath, "utf-8");
         const data = JSON.parse(content);
-        if (data?.id) {
+        const status = typeof data?.status === "string" ? data.status : "pending";
+        if (data?.id && status === "pending") {
           requests.push(data);
         }
       } catch {
@@ -70,21 +68,32 @@ export async function submitFeedback(
   try {
     ensureDirs();
 
-    const responseFile = path.join(COMPLETED_DIR, `${requestId}.json`);
+    const requestFile = path.join(REQUESTS_DIR, `${requestId}.json`);
+    const current = fs.existsSync(requestFile)
+      ? JSON.parse(fs.readFileSync(requestFile, "utf-8"))
+      : { id: requestId };
+
+    const status =
+      content === "[end]"
+        ? "ended"
+        : content === "[cancelled]"
+          ? "cancelled"
+          : "completed";
     const response = {
-      requestId,
+      ...current,
+      id: current.id || requestId,
+      status,
       content,
       images: images || [],
       timestamp: new Date().toISOString(),
-      // 元数据
       model: metadata?.model,
       sessionId: metadata?.sessionId,
       title: metadata?.title,
       agentId: metadata?.agentId,
     };
 
-    fs.writeFileSync(responseFile, JSON.stringify(response, null, 2), "utf-8");
-    console.log(`[PollingClient] 响应已写入: ${requestId}`);
+    fs.writeFileSync(requestFile, JSON.stringify(response, null, 2), "utf-8");
+    console.log(`[PollingClient] 响应已写入请求文件: ${requestId}`);
     return true;
   } catch (error) {
     console.error(`[PollingClient] 写入响应失败:`, error);
@@ -124,7 +133,7 @@ export function startPolling(
   ensureDirs();
   isPolling = true;
   onStatusChange(true, 0);
-  console.log(`[PollingClient] 开始监听请求目录: ${PENDING_DIR}`);
+  console.log(`[PollingClient] 开始监听请求目录: ${REQUESTS_DIR}`);
 
   watchInterval = setInterval(async () => {
     const pending = getPendingRequests();

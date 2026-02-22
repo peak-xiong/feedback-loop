@@ -65,8 +65,7 @@ class FeedbackCollector:
 
     def _ensure_dirs(self) -> None:
         """确保目录存在"""
-        self._dirs["pending_dir"].mkdir(parents=True, exist_ok=True)
-        self._dirs["completed_dir"].mkdir(parents=True, exist_ok=True)
+        self._dirs["requests_dir"].mkdir(parents=True, exist_ok=True)
 
     def collect(self) -> FeedbackResult:
         """收集反馈（阻塞等待）"""
@@ -97,9 +96,10 @@ class FeedbackCollector:
 
     def _write_request(self) -> None:
         """写入请求文件"""
-        request_file = self._dirs["pending_dir"] / f"{self.request_id}.json"
+        request_file = self._dirs["requests_dir"] / f"{self.request_id}.json"
         request_data = {
             "id": self.request_id,
+            "status": "pending",
             "project": self.project,
             "summary": self.summary,
             "createdAt": datetime.now().isoformat(),
@@ -115,15 +115,18 @@ class FeedbackCollector:
 
     def _wait_for_response(self) -> Optional[dict]:
         """轮询等待响应"""
-        response_file = self._dirs["completed_dir"] / f"{self.request_id}.json"
+        request_file = self._dirs["requests_dir"] / f"{self.request_id}.json"
         poll_interval = 0.5
         start_time = time.time()
 
         try:
             while True:
-                if response_file.exists():
-                    print()  # 换行
-                    return json.loads(response_file.read_text(encoding="utf-8"))
+                if request_file.exists():
+                    data = json.loads(request_file.read_text(encoding="utf-8"))
+                    status = data.get("status", "pending")
+                    if status != "pending":
+                        print()  # 换行
+                        return data
 
                 # 超时保护
                 if self.timeout > 0 and (time.time() - start_time) > self.timeout:
@@ -137,14 +140,11 @@ class FeedbackCollector:
 
     def _cleanup(self) -> None:
         """清理文件"""
-        for file in [
-            self._dirs["pending_dir"] / f"{self.request_id}.json",
-            self._dirs["completed_dir"] / f"{self.request_id}.json",
-        ]:
-            try:
-                file.unlink(missing_ok=True)
-            except Exception:
-                pass
+        file = self._dirs["requests_dir"] / f"{self.request_id}.json"
+        try:
+            file.unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def _print_success(self) -> None:
         print("✅ 已收到反馈")

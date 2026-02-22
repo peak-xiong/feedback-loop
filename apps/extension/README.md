@@ -46,12 +46,12 @@ windsurf --install-extension dist/feedback-loop.vsix --force
 
 ## 工作原理
 
-扩展监听当前项目目录下 `.windsurf/feedback-loop/requests/pending/`，当 CLI 写入请求文件后：
+扩展监听当前项目目录下 `.windsurf/feedback-loop/requests/`，当 CLI 写入请求文件后：
 
 1. 扩展检测到新文件
 2. 弹出对话框请求用户输入
-3. 用户提交后写入响应到 `.windsurf/feedback-loop/requests/completed/`
-4. 删除 pending 中的请求文件
+3. 用户提交后回写同一个请求文件（`status != pending`）
+4. CLI 读取响应后删除该请求文件
 
 ## License
 

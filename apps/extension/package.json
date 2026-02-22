@@ -2,7 +2,7 @@
   "name": "feedback-loop",
   "displayName": "Feedback Loop",
   "description": "Keep AI sessions flowing: collect next-step feedback via CLI ↔ IDE dialog.",
-  "version": "1.3.54",
+  "version": "1.3.55",
   "license": "MIT",
   "publisher": "peak-xiong",
   "icon": "images/icon.png",
@@ -111,11 +111,6 @@
         {
           "command": "feedbackLoop.deleteRequest",
           "when": "view == feedbackLoop.statusView && viewItem == requestPending",
-          "group": "inline@2"
-        },
-        {
-          "command": "feedbackLoop.deleteRequest",
-          "when": "view == feedbackLoop.statusView && viewItem == requestCompleted",
           "group": "inline@2"
         }
       ]
