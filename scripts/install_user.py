@@ -43,10 +43,16 @@ def install_cli_global() -> bool:
 
 def verify_feedback_available() -> None:
     try:
-        subprocess.run(["feedback", "--help"], check=False, capture_output=True, text=True)
+        result = subprocess.run(
+            ["feedback", "--help"], check=False, capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print("[错误] feedback 命令校验失败（返回码非 0）")
+            sys.exit(1)
         print("[OK] feedback 命令可用")
-    except Exception:
-        print("[警告] feedback 命令暂不可用，可能需要重新打开终端以刷新 PATH")
+    except Exception as e:
+        print(f"[错误] feedback 命令不可用: {e}")
+        sys.exit(1)
 
 
 def main() -> None:

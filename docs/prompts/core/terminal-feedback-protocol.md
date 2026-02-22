@@ -27,10 +27,10 @@ AI 完成任务 → 运行 feedback 命令 → IDE 扩展弹窗（阻塞）→ �
 
 ### 推荐命令
 ```bash
-uv run --project ./apps/feedback-cli feedback -p "项目路径" -s "AI工作完成摘要" -m "模型名称" -t "会话标题" -o "继续,修改,完成"
+feedback -p "项目路径" -s "AI工作完成摘要" -m "模型名称" -t "会话标题" -o "继续,修改,完成"
 ```
 
-> 说明：使用仓库相对路径 `./apps/feedback-cli`，避免在不同设备上依赖绝对路径。
+> 说明：install 脚本会保证全局 `feedback` 命令可用，不依赖仓库绝对/相对路径。
 
 ### 参数说明
 
@@ -52,7 +52,7 @@ AI: [分析问题、修改代码...]
     我已经修复了登录问题，主要修改了...
 
     [运行终端命令]
-    uv run --project ./apps/feedback-cli feedback -p "/path/to/project" -s "修复登录bug：修改了auth.py中的验证逻辑" -o "继续,继续排查,完成"
+    feedback -p "/path/to/project" -s "修复登录bug：修改了auth.py中的验证逻辑" -o "继续,继续排查,完成"
 
     [等待 GUI 返回用户反馈]
     

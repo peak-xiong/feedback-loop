@@ -31,10 +31,10 @@ trigger: always_on
 ## 调用命令
 
 ```bash
-uv run --project ./apps/feedback-cli feedback -p "项目路径" -s "工作摘要" -m "模型名称" -t "对话标题" -o "继续,修改,完成"
+feedback -p "项目路径" -s "工作摘要" -m "模型名称" -t "对话标题" -o "继续,修改,完成"
 ```
 
-> 说明：使用仓库相对路径 `./apps/feedback-cli`，避免设备间绝对路径差异。
+> 说明：install 脚本会保证全局 `feedback` 命令可用；优先使用全局命令，避免路径差异。
 
 ### 参数说明
 
