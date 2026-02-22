@@ -2,7 +2,7 @@
   "name": "feedback-loop",
   "displayName": "Feedback Loop",
   "description": "Keep AI sessions flowing: collect next-step feedback via CLI ↔ IDE dialog.",
-  "version": "1.3.53",
+  "version": "1.3.54",
   "license": "MIT",
   "publisher": "peak-xiong",
   "icon": "images/icon.png",
