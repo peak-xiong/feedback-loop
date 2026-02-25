@@ -73,7 +73,6 @@ class FeedbackCollector:
         self._write_request()
 
         response = self._wait_for_response()
-        self._cleanup()
 
         if response:
             self._print_success()
@@ -137,14 +136,6 @@ class FeedbackCollector:
         except KeyboardInterrupt:
             print("\n⚠️ 已取消")
             return None
-
-    def _cleanup(self) -> None:
-        """清理请求文件（保留图片文件供 AI 读取）"""
-        file = self._dirs["requests_dir"] / f"{self.request_id}.json"
-        try:
-            file.unlink(missing_ok=True)
-        except Exception:
-            pass
 
     def _print_success(self) -> None:
         print("✅ 已收到反馈")

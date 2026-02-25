@@ -15,21 +15,26 @@ export function escapeHtml(text: string): string {
 }
 
 export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
 /**
  * 保存 base64 图片到文件
  * @returns 保存的文件路径
  */
-export function saveBase64Image(requestId: string, base64Data: string): string | null {
+export function saveBase64Image(
+  requestId: string,
+  base64Data: string,
+): string | null {
   try {
     // 解析 data:image/xxx;base64,xxx 格式
-    const match = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+    const match = base64Data.match(/^data:image\/(\w+);base64,(.+)$/s);
     if (!match) {
-      console.error("Invalid base64 image format");
+      console.error(
+        `[FeedbackLoop] Invalid base64 image format, prefix: ${base64Data.substring(0, 50)}`,
+      );
       return null;
     }
 

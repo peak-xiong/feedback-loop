@@ -115,10 +115,16 @@ export async function showSessionInboxDialog(
             // 处理图片：如果有 base64 数据，保存为文件并替换
             let finalText = message.text || "";
             const imagePaths: string[] = [];
+            console.log(
+              `[FeedbackLoop] imageBase64 exists: ${!!message.imageBase64}, type: ${typeof message.imageBase64}, length: ${message.imageBase64?.length ?? 0}`,
+            );
             if (message.imageBase64) {
               const imagePath = saveBase64Image(
                 request.requestId,
                 message.imageBase64,
+              );
+              console.log(
+                `[FeedbackLoop] saveBase64Image result: ${imagePath}`,
               );
               if (imagePath) {
                 imagePaths.push(imagePath);

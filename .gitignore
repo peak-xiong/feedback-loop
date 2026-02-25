@@ -10,7 +10,8 @@ venv/
 
 # Build outputs
 dist/
-*.vsix
+# 预编译 vsix 保留入库
+!apps/extension/prebuilt/*.vsix
 
 # IDE
 .vscode/
