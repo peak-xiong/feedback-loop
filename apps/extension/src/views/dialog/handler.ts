@@ -70,7 +70,11 @@ export async function showSessionInboxDialog(
     );
     panel.iconPath = vscode.Uri.joinPath(extensionUri, "images", "icon.svg");
 
-    panel.webview.html = getWebviewContent(request, extensionUri, panel.webview);
+    panel.webview.html = getWebviewContent(
+      request,
+      extensionUri,
+      panel.webview,
+    );
   } catch (err) {
     console.error("Failed to create webview panel:", err);
     setLastPendingRequest(null);
@@ -110,12 +114,14 @@ export async function showSessionInboxDialog(
 
             // 处理图片：如果有 base64 数据，保存为文件并替换
             let finalText = message.text || "";
+            const imagePaths: string[] = [];
             if (message.imageBase64) {
               const imagePath = saveBase64Image(
                 request.requestId,
                 message.imageBase64,
               );
               if (imagePath) {
+                imagePaths.push(imagePath);
                 // 替换 base64 为文件路径
                 finalText = finalText.replace(
                   /(\[图片已附加\]|\[Image attached\])[\s\S]*$/,
@@ -124,7 +130,7 @@ export async function showSessionInboxDialog(
               }
             }
 
-            await submitFeedback(request.requestId, finalText, [], {
+            await submitFeedback(request.requestId, finalText, imagePaths, {
               model: request.model,
               sessionId: request.sessionId,
               title: request.title,
@@ -200,7 +206,13 @@ function getWebviewContent(
 ): string {
   // 生成 CSS URI
   const cssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, "dist", "views", "shared", "design-system.css")
+    vscode.Uri.joinPath(
+      extensionUri,
+      "dist",
+      "views",
+      "shared",
+      "design-system.css",
+    ),
   );
   const logoUri = webview.asWebviewUri(
     vscode.Uri.joinPath(extensionUri, "images", "icon.svg"),

@@ -139,23 +139,10 @@ class FeedbackCollector:
             return None
 
     def _cleanup(self) -> None:
-        """清理文件"""
+        """清理请求文件（保留图片文件供 AI 读取）"""
         file = self._dirs["requests_dir"] / f"{self.request_id}.json"
         try:
             file.unlink(missing_ok=True)
-        except Exception:
-            pass
-
-        # 清理该请求关联的图片目录
-        image_dir = self._dirs["images_dir"] / self.request_id
-        try:
-            if image_dir.exists():
-                for p in image_dir.iterdir():
-                    try:
-                        p.unlink(missing_ok=True)
-                    except Exception:
-                        pass
-                image_dir.rmdir()
         except Exception:
             pass
 
